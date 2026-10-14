@@ -16,3 +16,7 @@ or consumed by Milestone 1a.
 player `101`, unknown player ID `0`, unresolved player ID `998`, and globally
 known but unlisted player `777`. Empty tags/positions and blank subtypes are
 intentional validation cases. These events are not a sample from a real match.
+
+Playing-time tests add fictional `redCards` clocks, 47/49-minute period endpoints,
+and synthetic substitution/dismissal scenarios to copies of these records. No
+real player timings or event records are used as test fixtures.
