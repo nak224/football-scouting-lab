@@ -7,18 +7,20 @@ midfielders in **Wyscout Bundesliga 2017/18**. The total development target is
 
 ## Current status
 
-**Milestone 1a: local Wyscout match metadata loading.** A standard-library loader
-reads matches, players, and teams, preserves original IDs, validates consumed
-structures and match-sheet relationships, and derives historical participation.
-A small CLI summarizes the loaded season. Tests use explicitly synthetic records.
-Ruff, pytest, and GitHub Actions remain configured. Events, minutes, metrics,
-matching, and UI are not implemented.
+**Milestone 1b: optional local Wyscout event loading and validation.** The loader
+preserves raw event records and checks consumed fields and match/team references
+against the 1a metadata. Player-reference discrepancies are retained and reported.
+The CLI can summarize events while keeping metadata-only operation unchanged.
+Tests use explicitly synthetic records. Ruff, pytest, and GitHub Actions remain
+configured. Minutes, metrics, matching, and UI are not implemented.
 
 There are no runtime dependencies or third-party datasets in Git. The 1a real-data
 smoke test loaded cached raw metadata from the documented GitHub mirror outside
 the checkout. Primary Figshare release metadata and license verification remain
-pending following the blocked 0b probes. See [data sources](docs/data-sources.md)
-for the actual smoke results, provenance, schema limitations, and access blockers.
+pending following the blocked 0b probes. No accessible local event source file was
+available for the 1b real-data smoke, so it was not run. See
+[data sources](docs/data-sources.md) for actual smoke results, provenance, schema
+limitations, and the current event-test limitation.
 
 ## Finalized MVP v0.1 — planned
 
@@ -103,20 +105,50 @@ release authenticity, license terms, or complete season coverage. Small local
 subsets are accepted; the loader does not require exactly 306 matches. All Git
 fixtures are fictional and documented under `tests/fixtures/wyscout/`.
 
+## Optionally load events
+
+To validate and summarize events, also supply `events_Germany.json` in the same
+external directory. Keep the original football data outside Git. The loader does
+not download files or extract full archives.
+
+```sh
+python -m football_scouting_lab --data-dir /absolute/path/to/wyscout-metadata --events
+```
+
+Without `--events`, the event file is neither required nor read. With it, the CLI
+also reports event count, matches represented versus loaded metadata, and counts
+by source event type ID and match period. A missing/invalid event file or invalid
+match/team reference exits 2 before printing a partial summary.
+
+The loader keeps original event IDs, type/subtype fields, tags, positions, periods,
+timestamps, extra fields, and input order. It validates unique positive event IDs,
+finite nonnegative `eventSec`, known period codes, tags, and 0–100 coordinates.
+Empty tag/position arrays and blank subtypes are supported; source type/tag IDs
+are not translated or restricted to a hard-coded catalogue. See the complete
+consumed-field rules in [data sources](docs/data-sources.md).
+
+Player ID `0` means unknown. Positive IDs missing from player metadata or absent
+from the event's match-team lineup/bench are reported as nonfatal discrepancy
+categories. Those events remain in the result and the CLI exits 0 with warnings.
+Categories can overlap; they are not counts of distinct affected events when added
+together. Event loading never changes metadata participation or appearance counts,
+and does not derive minutes, rates, tactical positions, or metric scores. Event
+subsets are accepted, without a claim of complete season/event coverage.
+
 ## Milestones and budget
 
-0a, the 0b documentation/sample audit, and the 1a local metadata loader are
-implemented. Remaining implementation requires review. These are budget
-allocations, not recorded hours; the ranges sum to the 25–40-hour target.
+0a, the 0b documentation/sample audit, the 1a metadata loader, and the 1b optional
+event loader are implemented. Remaining implementation requires review. These are
+budget allocations, not recorded hours; the ranges sum to the 25–40-hour target.
 
 | Milestone | Scope | Budget | Status |
 | --- | --- | --- | --- |
 | 0a–0b | Foundation, MVP scope, and source verification | 3–5 h | Foundation and audit implemented; primary-source checks blocked |
-| 1 | Resolve source/license checks; ingest, normalize, and validate the German season and cohort | 6–8 h | 1a metadata loader implemented; primary-source checks, events, minutes, and cohort remain pending |
+| 1 | Resolve source/license checks; ingest, normalize, and validate the German season and cohort | 6–8 h | 1a metadata and 1b optional events implemented; primary-source/event-smoke checks, minutes, and cohort remain pending |
 | 2 | Auditable metrics, minutes eligibility, two role profiles, and custom weights | 5–8 h | Planned |
 | 3 | Separate similarity/fit scores, replacement recommendations, and lineup compatibility | 5–8 h | Planned |
 | 4 | Lightweight local player exploration and structured scouting search UI | 4–7 h | Planned |
 | 5 | End-to-end checks, explanations, and portfolio documentation | 2–4 h | Planned |
 
 See [architecture](docs/architecture.md) for the planned design and score
-boundaries. Milestone 1a stops here; further implementation requires review.
+boundaries. Milestone 1b stops here; further implementation requires review.

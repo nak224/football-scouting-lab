@@ -1,0 +1,73 @@
+[
+  {
+    "id": 5001,
+    "matchId": 1001,
+    "teamId": 201,
+    "playerId": 101,
+    "eventId": 8,
+    "eventName": "Pass",
+    "subEventId": 85,
+    "subEventName": "Simple pass",
+    "tags": [{"id": 1801, "syntheticNote": "retained"}],
+    "positions": [{"x": 0, "y": 100}, {"x": 55.5, "y": 40}],
+    "matchPeriod": "1H",
+    "eventSec": 2.125,
+    "syntheticNote": "all values are fictional"
+  },
+  {
+    "id": 5002,
+    "matchId": 1002,
+    "teamId": 202,
+    "playerId": 101,
+    "eventId": 10,
+    "eventName": "Shot",
+    "subEventId": 100,
+    "subEventName": "Shot",
+    "tags": [],
+    "positions": [],
+    "matchPeriod": "2H",
+    "eventSec": 0.0
+  },
+  {
+    "id": 5003,
+    "matchId": 1001,
+    "teamId": 201,
+    "playerId": 0,
+    "eventId": 7,
+    "eventName": "Others on the ball",
+    "subEventId": "",
+    "subEventName": "",
+    "tags": [],
+    "positions": [{"x": 50, "y": 50}],
+    "matchPeriod": "1H",
+    "eventSec": 3.25
+  },
+  {
+    "id": 5004,
+    "matchId": 1001,
+    "teamId": 201,
+    "playerId": 998,
+    "eventId": 1,
+    "eventName": "Duel",
+    "subEventId": 0,
+    "subEventName": "",
+    "tags": [{"id": 1801}],
+    "positions": [{"x": 25, "y": 75}],
+    "matchPeriod": "1H",
+    "eventSec": 3.25
+  },
+  {
+    "id": 5005,
+    "matchId": 1001,
+    "teamId": 201,
+    "playerId": 777,
+    "eventId": 8,
+    "eventName": "Pass",
+    "subEventId": 85,
+    "subEventName": "Simple pass",
+    "tags": [],
+    "positions": [{"x": 40, "y": 60}],
+    "matchPeriod": "2H",
+    "eventSec": 600.125
+  }
+]

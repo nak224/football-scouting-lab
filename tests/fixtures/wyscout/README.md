@@ -11,3 +11,8 @@ is an unused substitute, and player `777` and team `203` are unreferenced
 metadata. Substitutions exercise a list, JSON null, and the source's string
 `"null"` convention. Substitute minutes are inert fixture fields, not calculated
 or consumed by Milestone 1a.
+
+`events_Germany.json` is also entirely synthetic. It includes the transferred
+player `101`, unknown player ID `0`, unresolved player ID `998`, and globally
+known but unlisted player `777`. Empty tags/positions and blank subtypes are
+intentional validation cases. These events are not a sample from a real match.
