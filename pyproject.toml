@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "football-scouting-lab"
 version = "0.1.0"
-description = "A foundation for AI-assisted football scouting and player comparison."
+description = "A foundation for explainable football scouting and player comparison."
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = []
