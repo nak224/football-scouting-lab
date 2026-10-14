@@ -1,6 +1,7 @@
-"""Load local Bundesliga 2017/18 metadata without events or playing-time logic."""
+"""Load local Bundesliga 2017/18 metadata and optional unmodified event records."""
 
 import json
+import math
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -10,7 +11,7 @@ SEASON_ID = 181137
 
 
 class MetadataError(ValueError):
-    """A required metadata file or a consumed field is invalid."""
+    """A required Wyscout file or a consumed field is invalid."""
 
 
 @dataclass(frozen=True)
@@ -79,7 +80,7 @@ def _unique_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     return record
 
 
-def _read_records(path: Path) -> dict[int, dict[str, Any]]:
+def _read_records(path: Path, id_field: str = "wyId") -> dict[int, dict[str, Any]]:
     try:
         with path.open(encoding="utf-8") as stream:
             records = json.load(stream, object_pairs_hook=_unique_keys)
@@ -93,9 +94,9 @@ def _read_records(path: Path) -> dict[int, dict[str, Any]]:
     for number, value in enumerate(records):
         context = f"{path.name}[{number}]"
         record = _object(value, context)
-        record_id = _identifier(record.get("wyId"), f"{context}.wyId")
+        record_id = _identifier(record.get(id_field), f"{context}.{id_field}")
         if record_id in indexed:
-            raise MetadataError(f"{context}: duplicate wyId {record_id}")
+            raise MetadataError(f"{context}: duplicate {id_field} {record_id}")
         indexed[record_id] = record
     return indexed
 
@@ -217,3 +218,107 @@ def load_season(data_dir: str | Path) -> SeasonMetadata:
         row for match in matches.values() for row in _match_participation(match, teams)
     )
     return SeasonMetadata(matches, players, teams, participation)
+
+
+@dataclass
+class SeasonEvents:
+    """Original events and nonfatal player discrepancies, identified by event ID.
+
+    Missing-metadata and unlisted-player categories can overlap. Player ID 0 is
+    an explicit unknown and belongs only to unknown_player_event_ids.
+    """
+
+    records: dict[int, dict[str, Any]]
+    unknown_player_event_ids: frozenset[int]
+    missing_player_metadata_event_ids: frozenset[int]
+    unlisted_player_event_ids: frozenset[int]
+
+    @property
+    def match_ids(self) -> frozenset[int]:
+        return frozenset(event["matchId"] for event in self.records.values())
+
+
+def _number(value: Any, context: str) -> int | float:
+    if type(value) not in (int, float) or (
+        type(value) is float and not math.isfinite(value)
+    ):
+        raise MetadataError(f"{context}: expected a finite number")
+    return value
+
+
+def _validate_event_fields(event: dict[str, Any], context: str) -> None:
+    _identifier(event.get("eventId"), f"{context}.eventId")
+    name = event.get("eventName")
+    if not isinstance(name, str) or not name.strip():
+        raise MetadataError(f"{context}.eventName: expected a nonempty string")
+    subtype = event.get("subEventId")
+    if subtype != "" and (type(subtype) is not int or subtype < 0):
+        raise MetadataError(
+            f"{context}.subEventId: expected a nonnegative integer or ''"
+        )
+    if not isinstance(event.get("subEventName"), str):
+        raise MetadataError(f"{context}.subEventName: expected a string")
+    if event.get("matchPeriod") not in ("1H", "2H", "E1", "E2", "P"):
+        raise MetadataError(f"{context}.matchPeriod: expected 1H, 2H, E1, E2, or P")
+    if _number(event.get("eventSec"), f"{context}.eventSec") < 0:
+        raise MetadataError(f"{context}.eventSec: expected nonnegative seconds")
+
+    for number, value in enumerate(_array(event.get("tags"), f"{context}.tags")):
+        tag_context = f"{context}.tags[{number}]"
+        tag = _object(value, tag_context)
+        _identifier(tag.get("id"), f"{tag_context}.id")
+    for number, value in enumerate(
+        _array(event.get("positions"), f"{context}.positions")
+    ):
+        point_context = f"{context}.positions[{number}]"
+        point = _object(value, point_context)
+        for axis in ("x", "y"):
+            coordinate = _number(point.get(axis), f"{point_context}.{axis}")
+            if not 0 <= coordinate <= 100:
+                raise MetadataError(
+                    f"{point_context}.{axis}: expected a value in [0, 100]"
+                )
+
+
+def load_events(data_dir: str | Path, metadata: SeasonMetadata) -> SeasonEvents:
+    """Validate local events against loaded metadata without changing source values.
+
+    Invalid consumed fields and match/team references raise MetadataError.
+    Unknown, unresolved, or unlisted players are retained with explicit event-ID
+    discrepancy sets. No event ordering, clock conversion, or minutes are derived.
+    """
+    events = _read_records(Path(data_dir) / "events_Germany.json", id_field="id")
+    squad_members = {
+        (row.match_id, row.team_id, row.player_id) for row in metadata.participation
+    }
+    unknown, missing, unlisted = set(), set(), set()
+    for event_id, event in events.items():
+        context = f"events_Germany.json event {event_id}"
+        _validate_event_fields(event, context)
+        match_id = _identifier(event.get("matchId"), f"{context}.matchId")
+        team_id = _identifier(event.get("teamId"), f"{context}.teamId")
+        if match_id not in metadata.matches:
+            raise MetadataError(
+                f"{context}: matchId {match_id} missing from loaded matches"
+            )
+        if team_id not in metadata.teams:
+            raise MetadataError(f"{context}: teamId {team_id} missing from teams.json")
+        if str(team_id) not in metadata.matches[match_id]["teamsData"]:
+            raise MetadataError(
+                f"{context}: teamId {team_id} is not in match {match_id}"
+            )
+        player_id = event.get("playerId")
+        if type(player_id) is not int or player_id < 0:
+            raise MetadataError(
+                f"{context}.playerId: expected a nonnegative integer ID"
+            )
+        if player_id == 0:
+            unknown.add(event_id)
+        else:
+            if player_id not in metadata.players:
+                missing.add(event_id)
+            if (match_id, team_id, player_id) not in squad_members:
+                unlisted.add(event_id)
+    return SeasonEvents(
+        events, frozenset(unknown), frozenset(missing), frozenset(unlisted)
+    )
