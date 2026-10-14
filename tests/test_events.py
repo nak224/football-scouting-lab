@@ -149,8 +149,6 @@ def test_match_and_team_references_are_checked(
         ("positions", {}),
         ("positions", [None]),
         ("positions", [{"x": 1}]),
-        ("positions", [{"x": -1, "y": 50}]),
-        ("positions", [{"x": 50, "y": 100.1}]),
         ("positions", [{"x": True, "y": 50}]),
         ("positions", [{"x": 50, "y": float("inf")}]),
     ],
@@ -212,3 +210,13 @@ def test_unmapped_type_and_tag_ids_are_preserved(synthetic_data_dir):
 
     assert events.records[5001]["eventId"] == 999
     assert events.records[5001]["tags"] == [{"id": 99999}]
+
+
+@pytest.mark.parametrize("point", [{"x": -1, "y": 50}, {"x": 50, "y": 100.1}])
+def test_outside_coordinates_are_reported_without_clipping(synthetic_data_dir, point):
+    rewrite_events(synthetic_data_dir, lambda rows: rows[0].update(positions=[point]))
+
+    events = load_events(synthetic_data_dir, load_season(synthetic_data_dir))
+
+    assert events.out_of_bounds_position_event_ids == {5001}
+    assert events.records[5001]["positions"] == [point]

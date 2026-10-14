@@ -108,3 +108,15 @@ def test_invalid_events_fail_before_printing_a_partial_summary(synthetic_data_di
     assert result.returncode == 2
     assert "matchId 9999 missing from loaded matches" in result.stderr
     assert not result.stdout
+
+
+def test_cli_reports_outside_coordinates_as_data_quality_warnings(synthetic_data_dir):
+    path = synthetic_data_dir / "events_Germany.json"
+    events = json.loads(path.read_text())
+    events[0]["positions"][0]["x"] = 101
+    path.write_text(json.dumps(events))
+
+    result = invoke(synthetic_data_dir, "--events")
+
+    assert result.returncode == 0
+    assert "warning: 1 events have positions outside [0, 100]" in result.stderr
