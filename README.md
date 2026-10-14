@@ -7,20 +7,20 @@ midfielders in **Wyscout Bundesliga 2017/18**. The total development target is
 
 ## Current status
 
-**Milestone 1b: optional local Wyscout event loading and validation.** The loader
-preserves raw event records and checks consumed fields and match/team references
-against the 1a metadata. Player-reference discrepancies are retained and reported.
-The CLI can summarize events while keeping metadata-only operation unchanged.
-Tests use explicitly synthetic records. Ruff, pytest, and GitHub Actions remain
-configured. Minutes, metrics, matching, and UI are not implemented.
+**Milestone 1c: raw-event validation and match-level playing-time estimates.**
+The loader has been exercised on the documented mirror's complete raw German
+ZIP member. Finite coordinate outliers remain unchanged with explicit warnings.
+A small function estimates minutes from match sheets and event timing, preserving
+identity and returning unknown values/warnings when timing cannot be resolved.
+Tests use explicitly synthetic records. Per-90 metrics, matching, and UI remain
+unimplemented.
 
-There are no runtime dependencies or third-party datasets in Git. The 1a real-data
-smoke test loaded cached raw metadata from the documented GitHub mirror outside
-the checkout. Primary Figshare release metadata and license verification remain
-pending following the blocked 0b probes. No accessible local event source file was
-available for the 1b real-data smoke, so it was not run. See
-[data sources](docs/data-sources.md) for actual smoke results, provenance, schema
-limitations, and the current event-test limitation.
+There are no runtime dependencies or third-party datasets in Git. Figshare item
+metadata now confirms CC BY 4.0, and the small mirror metadata files match its
+published checksums. The original event binary redirects to a blocked S3 host;
+the event smoke is **mirror-derived**, not verification of the whole original
+event archive. Only the German member was downloaded via byte ranges. See
+[data sources](docs/data-sources.md) for actual findings and checksum boundaries.
 
 ## Finalized MVP v0.1 — planned
 
@@ -122,7 +122,9 @@ match/team reference exits 2 before printing a partial summary.
 
 The loader keeps original event IDs, type/subtype fields, tags, positions, periods,
 timestamps, extra fields, and input order. It validates unique positive event IDs,
-finite nonnegative `eventSec`, known period codes, tags, and 0–100 coordinates.
+finite nonnegative `eventSec`, known period codes, tags, and finite coordinates.
+Values outside the nominal 0–100 range are preserved and reported, not clipped
+or used to reject the whole file; two such events occurred in the real smoke.
 Empty tag/position arrays and blank subtypes are supported; source type/tag IDs
 are not translated or restricted to a hard-coded catalogue. See the complete
 consumed-field rules in [data sources](docs/data-sources.md).
@@ -132,23 +134,45 @@ from the event's match-team lineup/bench are reported as nonfatal discrepancy
 categories. Those events remain in the result and the CLI exits 0 with warnings.
 Categories can overlap; they are not counts of distinct affected events when added
 together. Event loading never changes metadata participation or appearance counts,
-and does not derive minutes, rates, tactical positions, or metric scores. Event
+and does not itself derive minutes, rates, tactical positions, or metric scores. Event
 subsets are accepted, without a claim of complete season/event coverage.
+
+## Estimate one match's playing time
+
+After loading the external files, use the small Python API:
+
+```python
+from football_scouting_lab.playing_time import estimate_playing_time
+from football_scouting_lab.wyscout import load_events, load_season
+
+metadata = load_season("/absolute/path/to/wyscout-metadata")
+events = load_events("/absolute/path/to/wyscout-metadata", metadata)
+result = estimate_playing_time(metadata, 2516739, events)
+for row in result.players:
+    print(row.match_id, row.team_id, row.player_id, row.minutes, row.warnings)
+print(result.warnings)
+```
+
+Unused substitutes are excluded. These are match-level estimates, not official
+minutes or season metrics. Missing/incomplete event periods, invalid timing, and
+unresolved clock ambiguity can yield `None`; inspect both match and player
+warnings. See [playing-time conventions](docs/playing-time.md) for halftime,
+second-half/stoppage clocks, dismissals, and the conservative completeness rule.
 
 ## Milestones and budget
 
-0a, the 0b documentation/sample audit, the 1a metadata loader, and the 1b optional
-event loader are implemented. Remaining implementation requires review. These are
+0a, the 0b source audit, 1a metadata, 1b events, and 1c match-level playing-time
+estimates are implemented. Remaining implementation requires review. These are
 budget allocations, not recorded hours; the ranges sum to the 25–40-hour target.
 
 | Milestone | Scope | Budget | Status |
 | --- | --- | --- | --- |
 | 0a–0b | Foundation, MVP scope, and source verification | 3–5 h | Foundation and audit implemented; primary-source checks blocked |
-| 1 | Resolve source/license checks; ingest, normalize, and validate the German season and cohort | 6–8 h | 1a metadata and 1b optional events implemented; primary-source/event-smoke checks, minutes, and cohort remain pending |
+| 1 | Resolve source/license checks; ingest, normalize, and validate the German season and cohort | 6–8 h | Metadata, raw-mirror event validation, and match minutes implemented; original event-binary verification and cohort remain pending |
 | 2 | Auditable metrics, minutes eligibility, two role profiles, and custom weights | 5–8 h | Planned |
 | 3 | Separate similarity/fit scores, replacement recommendations, and lineup compatibility | 5–8 h | Planned |
 | 4 | Lightweight local player exploration and structured scouting search UI | 4–7 h | Planned |
 | 5 | End-to-end checks, explanations, and portfolio documentation | 2–4 h | Planned |
 
 See [architecture](docs/architecture.md) for the planned design and score
-boundaries. Milestone 1b stops here; further implementation requires review.
+boundaries. Milestone 1c stops here; further implementation requires review.

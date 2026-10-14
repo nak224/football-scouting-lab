@@ -1,6 +1,6 @@
 # Architecture
 
-## Implemented through Milestone 1b
+## Implemented through Milestone 1c
 
 The project contains one Python package under `src/football_scouting_lab/`.
 `wyscout.py` loads three local JSON arrays: `matches_Germany.json`, `players.json`,
@@ -19,8 +19,17 @@ Event IDs, type/subtype fields, tags, coordinates, periods, timestamps, extra
 fields, and source order are retained. Consumed fields, unique event IDs, and
 match/team references are validated. An event's team must belong to that specific
 loaded match. Player discrepancies are nonfatal and do not alter the event,
-metadata affiliation, or match-sheet appearance flags. No clock normalization,
-sorting, minutes, event-derived eligibility, or performance metrics are computed.
+metadata affiliation, or match-sheet appearance flags. Finite coordinate outliers
+have a separate diagnostic set and remain unchanged. The raw German mirror smoke
+identified two outliers; rejecting the entire file at the nominal bounds was
+corrected in 1c. No event sorting or coordinate transformation is performed.
+
+`playing_time.py` adds `estimate_playing_time(metadata, match_id, events=None)`.
+It returns one match's player minutes, preserved identities, observed period
+endpoints, and explicit match/player warnings. It uses match sheets and event
+period/card timestamps, excludes unused substitutes, and never fills missing
+timing with 90 minutes. Ambiguous or unusable timing produces `None`. See
+[playing-time conventions](playing-time.md) for the scoped regular-time rules.
 
 Participation records preserve match, team, and player IDs and distinguish
 starting, being listed on the bench, entering, and leaving as a substitute.
@@ -37,9 +46,9 @@ fully validated. A subset can load without claiming complete season coverage.
 Synthetic fixtures and focused tests cover metadata/event loading, validation,
 player discrepancies, historical affiliation, participation, and both CLI modes.
 GitHub Actions runs Ruff and pytest. There are no added runtime dependencies,
-downloads, minutes, metrics, matching, services, or UI. Third-party files remain
-outside Git. A real-event smoke remains unrun because no accessible local source
-file was available in the 1b environment.
+automatic downloads, per-90 metrics, matching, services, or UI. Third-party files
+remain outside Git. The 1c raw-mirror smoke loaded 519,407 events and exercised
+three match-level estimates; it does not verify the whole original event archive.
 
 ## MVP v0.1 boundary
 
@@ -59,12 +68,12 @@ graph ML, authentication, or deployment. It needs no separate API service.
 
 ## Component status and planned data flow
 
-Local metadata loading, match-sheet facts, and optional raw-event validation are
-implemented. Event normalization, scoring, timed participation, and UI remain planned.
+Local metadata, match-sheet facts, raw-event validation, and conservative
+match-level minutes are implemented. Further normalization, scoring, and UI remain planned.
 
 | Component | Intended responsibility | Status |
 | --- | --- | --- |
-| Source access and normalization | Local metadata and optional raw events can load; primary-release/real-event verification, timed participation, and further normalization are pending | Partly implemented (1a–1b) |
+| Source access and normalization | Metadata, raw-mirror event validation, and match-level minutes exist; original event-binary verification and further normalization remain pending | Partly implemented (1a–1c) |
 | Cohort and analytics | Establish reviewed central-midfielder eligibility, a minutes threshold, documented event-derived metrics, units, and normalization within the eligible cohort | Planned |
 | Role profiles and weights | Define explicit Deep-Lying Playmaker and Ball-Winning Midfielder profiles; let scouts customize metric weights and see the effects | Planned |
 | Player comparison and replacements | Return separate style-similarity, role-fit, and team-fit results with feature contributions and eligibility filters | Planned |
@@ -109,14 +118,16 @@ application definitions, not source annotations.
 
 Event `positions` describe action locations on a 0–100 scale, not continuous
 player tracking. Confirm coordinate orientation before defining spatial metrics.
-Playing time must be derived from participation and timing records; sample sizes,
-substitutions, dismissals, stoppage-time conventions, missing/unknown player IDs,
-and name encoding need validation before per-90 calculations or rankings.
+The minutes function now derives estimates from participation and timing records.
+Its warnings/unknown values, sample sizes, missing player IDs, and name encoding
+must be addressed before per-90 calculations or rankings; none are implemented here.
 
 Direct Figshare metadata/download access and rendered socceraction documentation
 were blocked during 0b. A GitHub mirror sample and upstream loader source were
-accessible, but the primary release license and file checksums still need checking.
+accessible. In 1c the primary item licenses and small metadata checksums were
+verified; the original event binary still redirects to a blocked S3 host, and its
+whole-archive hash remains unverified. The raw event smoke is mirror-derived.
 See [data sources](data-sources.md) for evidence and attribution requirements.
-The local loader and its mirror smoke test do not resolve those release/usage
-checks. Resolve them before accepting original source data for published analysis.
+The local loader and mirror smoke do not establish original event-binary identity.
+Retain provenance and follow the verified data attribution terms for any publication.
 Keep data outside Git and add dependencies only with the milestone that needs them.

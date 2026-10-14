@@ -137,6 +137,11 @@ scientific paper's license and socceraction's software license are separate from
 the dataset license. Treat primary item-level license verification as an ingestion
 and publication gate, not as completed legal clearance.
 
+**1c update:** the original Figshare API now returns item-level CC BY 4.0 licenses
+for events, matches, players, and teams. The older access failures above are
+historical. Original event-binary identity is still a separate, unresolved check;
+see the 1c acquisition below.
+
 If the primary release confirms CC BY 4.0, follow its
 [license terms](https://creativecommons.org/licenses/by/4.0/): credit the dataset
 creators and Wyscout as the data source, link the dataset and license, retain
@@ -212,7 +217,7 @@ keys and duplicate event IDs anywhere in the input are rejected.
 | `matchPeriod` | One of `1H`, `2H`, `E1`, `E2`, `P`, preserved as supplied |
 | `eventSec` | Finite nonnegative numeric value, excluding booleans; no upper duration limit, sorting, conversion, or derived minutes |
 | `tags` | Array of objects, each with a positive integer `id`; empty arrays and additional object fields are retained |
-| `positions` | Array of objects with finite numeric `x`/`y` in `[0, 100]`; empty arrays and any number of points are supported, without coordinate transformation |
+| `positions` | Array of objects with finite numeric `x`/`y`; empty arrays and any number of points are supported, without coordinate transformation. In 1c, values outside nominal `[0, 100]` are retained with diagnostics after real-source outliers were observed |
 
 All consumed fields are required. Validation checks the supplied file against
 loaded metadata; it does not prove release authenticity, complete season coverage,
@@ -227,6 +232,8 @@ inspect the original records:
 - `missing_player_metadata_event_ids`: positive player ID absent from `players.json`.
 - `unlisted_player_event_ids`: positive player ID absent from that match-team's
   starting lineup and bench, even if globally known.
+- `out_of_bounds_position_event_ids` (1c): finite coordinates outside nominal
+  `[0, 100]`, retained unchanged rather than clipped or rejected.
 
 The last two categories can overlap, so adding their sizes is not a distinct-event
 total. Discrepancies produce CLI stderr warnings and exit 0; records are not
@@ -250,18 +257,108 @@ original `events_Germany.json` in an external directory and run the README's
 `--events` command. Record the source/version, file hashes, exit status, and actual
 summary/warnings. Do not infer full-season success from a sample or synthetic test.
 
+## Milestone 1c raw acquisition and actual findings — 2026-10-14
+
+### Provenance and verification boundaries
+
+The primary collection API returned collection **version 5**. Original item APIs
+for [events](https://api.figshare.com/v2/articles/7770599),
+[matches](https://api.figshare.com/v2/articles/7770422),
+[players](https://api.figshare.com/v2/articles/7765196), and
+[teams](https://api.figshare.com/v2/articles/7765310) each reported **CC BY 4.0**.
+Events/matches items are version 1; players/teams are version 3. The events item
+identifies `events.zip`, file `14464685`, size **77,323,413 bytes**, published MD5
+`7c20e8647e7eda58d7838a0c7b1ec6ab`.
+
+Original download access was attempted. The public `ndownloader.figshare.com`
+link redirects to `s3-eu-west-1.amazonaws.com/pfigshare-u-files/14464685/events.zip`,
+where the proxy returned a tunnel **403 Forbidden**. The original binary was not
+downloaded, and its whole-archive MD5 was **not verified**.
+
+Fallback used the documented, pinned secondary mirror at
+`ebc4c54c1093c420a81ce442c69e4186fab33bb4`, specifically `raw_data/events.zip`.
+HTTP byte ranges were honored with **206**. A 64-KiB central-directory read and
+30-byte local header located `events_Germany.json`; bytes
+**32158836–44516389** fetched only its **12,357,554 compressed bytes**. Deflate
+decompression produced the untouched **152,916,631-byte raw JSON array**, and
+its ZIP member CRC-32 **1109742889** matched. SHA-256 of the extracted file:
+`2612a6f8cbd8209acf39d5e3c7d2a43689138b1134d09b36e23a4b0422a781f3`.
+
+This is a **raw mirror ZIP member**, not events stripped from a processed match
+wrapper. ZIP CRC proves integrity against the mirror's directory, not identity
+to the independently published original archive. Matching archive size is also
+not proof of identity. No other league's events or complete multi-league event
+archive was downloaded. All acquisition files stayed under `/tmp`, outside Git.
+
+The mirror's small `matches.zip` (645,097 bytes), `players.json`, and `teams.json`
+were also acquired; only the German matches were extracted. Their published
+Figshare file/container MD5 values matched respectively:
+`51d80beb17480919f69a53a0152c2d71`, `f28ddf6326281efeda6488b2169f5609`, and
+`1381ff9449f21105090729cf0e086b5b`. Extracted metadata SHA-256 values match the
+1a table. These metadata checks do not verify the event archive.
+
+### Existing loader smoke and scoped compatibility correction
+
+The initial 1b loader rejected event `225765702` because a position had `y=101`.
+Independent inspection found **two finite coordinate-outlier events**, IDs
+`225765702` and `225765704`. The 1c correction preserves such values and reports
+their event IDs as data-quality diagnostics. It does not decide whether the
+outliers are intentional annotations or errors, clip them, or relax nonfinite/
+nonnumeric field validation. Regression tests remain explicitly synthetic.
+
+After that correction, loading and auditing the actual raw member succeeded:
+
+| Check | Actual result |
+| --- | --- |
+| Events / represented matches | **519,407 / 306** |
+| `1H` / `2H` event counts | **260,333 / 259,074**; no other period codes observed |
+| Unknown player ID `0` events | **37,244**, retained and reported |
+| Positive players missing metadata / absent from match-team squad | **0 / 0** |
+| Coordinate-outlier events | **2**, retained and reported |
+| Unique IDs and match/team references | Existing loader checks passed |
+| Timestamp range | Approximately **0.0096–3537.356061 seconds**; finite and nonnegative |
+| Loading plus audit wall time / peak RSS | **11.525 s / 1010.9 MiB** on this instance |
+
+The standard-library loader reads the whole German array in memory. The runtime
+had a 32-GiB memory limit and ample temporary disk space; this smoke establishes
+feasibility here, not a low-memory or streaming guarantee. These are raw-data
+validation counts, not player-performance statistics.
+
+### Match-minutes smoke
+
+The function was exercised against the same loaded raw data for three matches.
+Values below are rounded only for display; calculations retain fractional minutes.
+
+| Match | Observed halves / estimated duration | Actual estimator finding |
+| --- | --- | --- |
+| `2516739` | 45.5723 + 46.5905 = **92.1627 min** | 28 appearing players, no unknown minute rows; halftime outgoing `388267` estimated 45.5723 and incoming `146583` 46.5905 min |
+| `2517042` | 47.0724 + 45.6943 = **92.7668 min** | 28 appearing players, no unknown minute rows; tagged dismissal for `15232` gave **72.2623 min** |
+| `2516740` | First half endpoint **44.9603 min** | Duration and all 28 player-minute rows deliberately `None`, with a completeness warning |
+
+Each already-loaded match estimate took about **0.063–0.065 s** here. This is
+not validation against official player-minute totals. Last events can precede
+the whistle. Across the source, **42 period endpoints** were below 45 minutes;
+this can be a normal small final-event gap, not proof of missing data. The
+conservative convention withholds affected match estimates rather than padding
+or pretending completeness. Inspect both match and player warnings.
+
+See [playing-time conventions](playing-time.md) for halftime, second-half and
+stoppage clocks, dismissal precedence, uncertainty, and unsupported cases. No
+season scouting statistics or per-90 measures were generated.
+
 ## Remaining access checks
 
 The saved environment draft adds `figshare.com`, `api.figshare.com`,
 `ndownloader.figshare.com`, and `socceraction.readthedocs.io`; saving the draft
 does not apply these domains to the running environment. Review/save the settings
-and publish the environment after review. Then retry the collection API and small
-teams download, inspect each selected item's license/version/filename/checksum,
-and inspect any download redirect host before requesting an additional domain.
-No token requirement has been established by these proxy denials.
+and publish the environment after review. The collection/item API and metadata
+checks succeeded in 1c. Original binary access still requires the observed S3
+redirect host to be permitted through environment settings; no policy bypass was
+attempted. Recheck actual access and original event-archive identity separately.
+No new token requirement is established by that proxy denial.
 
 Keep all third-party files outside Git. The repository's ignored root `data/`
 is a safeguard, not a license grant; PublicWyscoutLoader's different default
-directory is not covered by that ignore rule. After 1b, local match/player/team
-metadata, match-sheet participation, and optional raw event loading/validation are
-implemented. Minutes, metrics, matching, and UI remain unimplemented.
+directory is not covered by that ignore rule. After 1c, local metadata, raw events,
+and conservative match-level minutes are implemented. Per-90 metrics, role scores,
+matching, recommendations, team compatibility, and UI remain unimplemented.
