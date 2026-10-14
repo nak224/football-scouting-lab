@@ -145,6 +145,53 @@ the dataset citation above and the accompanying paper reference in published
 analysis; preserve any additional attribution specified by the original items.
 Recheck terms before importing or publishing data or derived outputs.
 
+## Milestone 1a local metadata smoke — 2026-10-14
+
+Actual raw files cached during 0b were available for this test. No new Figshare
+download or primary-release validation was performed. `matches_Germany.json` was
+extracted unchanged from the cached mirror `matches.zip`; cached `players.json`
+and `teams.json` were copied alongside it into a new directory under `/tmp`,
+outside Git. The cached archive and metadata hashes matched the 0b acquisition
+manifest before use. Source: the secondary mirror at commit
+`ebc4c54c1093c420a81ce442c69e4186fab33bb4`, linked above.
+
+| Local file | Bytes | SHA-256 of inspected file |
+| --- | --- | --- |
+| `matches_Germany.json` | 1,377,328 | `6f962a20f50b174939c7b24d51169aaee10ae896b05dca89fc33aa81b585c0a9` |
+| `players.json` | 1,737,347 | `877a111cb1005b73df5645e9338bd74fb4b496bace2fbc545a72abb3b73efa2e` |
+| `teams.json` | 27,404 | `9f7a4a3b3d92c0be33f40613ad6e6eb4316c3b9771ec74c61a22c9b8ece23a4d` |
+
+The actual command was `python -m football_scouting_lab --data-dir <external-dir>`
+using the development virtual environment. It exited **0** and printed:
+
+```text
+Wyscout Bundesliga 2017/18
+Matches: 306
+Teams: 18
+Referenced players: 537 (includes unused bench)
+Players recorded as appearing: 472
+```
+
+It also warned on stderr:
+
+```text
+warning: player IDs missing from players.json: 302605, 497353
+```
+
+The loader produced 11,002 match-team-player facts from the match sheets. The
+two missing metadata IDs occur only as unused bench players in this snapshot:
+`302605` in match `2516994`, team `2453`, and `497353` in match `2517007`, team
+`2481`. Their original references remain intact; no names or metadata records
+were fabricated. The full global files contain 3,603 players and 142 teams,
+so those file totals must not be reported as German-season participant counts.
+
+This smoke demonstrates local loading, consumed-field validation, and historical
+match-sheet derivation on this mirror snapshot. It does not establish equivalence
+to the original Figshare release, verify primary item licenses/checksums, process
+events, calculate minutes, validate optional metadata fields, or identify central
+midfielders. Dataset attribution and the primary-access limitations above still
+apply. Tests in Git use only hand-authored, explicitly synthetic fixtures.
+
 ## Remaining access checks
 
 The saved environment draft adds `figshare.com`, `api.figshare.com`,
@@ -156,6 +203,7 @@ and inspect any download redirect host before requesting an additional domain.
 No token requirement has been established by these proxy denials.
 
 Keep all third-party files outside Git. The repository's ignored root `data/`
-is a safeguard, not a license grant; the loader's different default directory is
-not covered by that ignore rule. Ingestion, metrics, matching, and UI remain
-unimplemented after 0b.
+is a safeguard, not a license grant; PublicWyscoutLoader's different default
+directory is not covered by that ignore rule. After 1a, only local match/player/team
+metadata loading and match-sheet participation are implemented. Events, minutes,
+metrics, matching, and UI remain unimplemented.

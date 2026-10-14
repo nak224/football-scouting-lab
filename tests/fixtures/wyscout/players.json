@@ -1,0 +1,10 @@
+[
+  {"wyId": 101, "shortName": "Synthetic Player A", "currentTeamId": 9999},
+  {"wyId": 102, "shortName": "Synthetic Player B", "currentTeamId": 9999},
+  {"wyId": 103, "shortName": "Synthetic Player C", "currentTeamId": 9999},
+  {"wyId": 104, "shortName": "Synthetic Player D", "currentTeamId": 9999},
+  {"wyId": 105, "shortName": "Synthetic Player E", "currentTeamId": 9999},
+  {"wyId": 106, "shortName": "Synthetic Player F", "currentTeamId": 9999},
+  {"wyId": 109, "shortName": "Synthetic Unused Substitute", "currentTeamId": 9999},
+  {"wyId": 777, "shortName": "Synthetic Unreferenced Player", "currentTeamId": 9999}
+]
