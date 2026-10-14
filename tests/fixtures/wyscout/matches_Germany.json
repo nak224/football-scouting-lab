@@ -1,0 +1,52 @@
+[
+  {
+    "wyId": 1001,
+    "competitionId": 426,
+    "seasonId": 181137,
+    "teamsData": {
+      "201": {
+        "teamId": 201,
+        "side": "home",
+        "formation": {
+          "lineup": [{"playerId": 101}, {"playerId": 102}],
+          "bench": [{"playerId": 103}, {"playerId": 109}],
+          "substitutions": [{"playerIn": 103, "playerOut": 102, "minute": 60}]
+        }
+      },
+      "202": {
+        "teamId": 202,
+        "side": "away",
+        "formation": {
+          "lineup": [{"playerId": 104}, {"playerId": 105}],
+          "bench": [{"playerId": 106}],
+          "substitutions": "null"
+        }
+      }
+    }
+  },
+  {
+    "wyId": 1002,
+    "competitionId": 426,
+    "seasonId": 181137,
+    "teamsData": {
+      "201": {
+        "teamId": 201,
+        "side": "home",
+        "formation": {
+          "lineup": [{"playerId": 102}, {"playerId": 103}],
+          "bench": [{"playerId": 109}],
+          "substitutions": null
+        }
+      },
+      "202": {
+        "teamId": 202,
+        "side": "away",
+        "formation": {
+          "lineup": [{"playerId": 101}, {"playerId": 104}],
+          "bench": [{"playerId": 106}],
+          "substitutions": [{"playerIn": 106, "playerOut": 104, "minute": 75}]
+        }
+      }
+    }
+  }
+]
