@@ -192,6 +192,64 @@ events, calculate minutes, validate optional metadata fields, or identify centra
 midfielders. Dataset attribution and the primary-access limitations above still
 apply. Tests in Git use only hand-authored, explicitly synthetic fixtures.
 
+## Milestone 1b event contract and smoke limitation — 2026-10-14
+
+The implemented `load_events(data_dir, metadata)` reads a **nonempty JSON array**
+from `events_Germany.json`, using the already loaded 1a metadata. The CLI enables
+it only with `--events`. Records remain indexed by original event `id`; fields,
+values, tag/position array order, and overall source record order are unchanged.
+Extra fields are retained without additional interpretation. Duplicate JSON object
+keys and duplicate event IDs anywhere in the input are rejected.
+
+| Consumed field | Implemented validation |
+| --- | --- |
+| `id` | Unique positive integer event identifier; booleans and string IDs are invalid |
+| `matchId` | Positive integer referring to a loaded match |
+| `teamId` | Positive integer present in team metadata and in that particular match's `teamsData` |
+| `playerId` | Nonnegative integer; `0` is explicitly unknown; positive unresolved/unlisted IDs are retained with discrepancies |
+| `eventId`, `eventName` | Positive integer type ID and nonempty string label; no fixed type catalogue or inferred label mapping |
+| `subEventId`, `subEventName` | Nonnegative integer or empty-string subtype ID, plus string label (which may be empty); no coercion or replacement |
+| `matchPeriod` | One of `1H`, `2H`, `E1`, `E2`, `P`, preserved as supplied |
+| `eventSec` | Finite nonnegative numeric value, excluding booleans; no upper duration limit, sorting, conversion, or derived minutes |
+| `tags` | Array of objects, each with a positive integer `id`; empty arrays and additional object fields are retained |
+| `positions` | Array of objects with finite numeric `x`/`y` in `[0, 100]`; empty arrays and any number of points are supported, without coordinate transformation |
+
+All consumed fields are required. Validation checks the supplied file against
+loaded metadata; it does not prove release authenticity, complete season coverage,
+or that all matches have events. Event subsets are allowed as long as their
+match/team references resolve. CLI summaries show matches with events versus
+loaded matches, type-ID counts, and period counts.
+
+`SeasonEvents` exposes discrepancies as sets of **event IDs**, so callers can
+inspect the original records:
+
+- `unknown_player_event_ids`: source player ID `0`; no player is fabricated.
+- `missing_player_metadata_event_ids`: positive player ID absent from `players.json`.
+- `unlisted_player_event_ids`: positive player ID absent from that match-team's
+  starting lineup and bench, even if globally known.
+
+The last two categories can overlap, so adding their sizes is not a distinct-event
+total. Discrepancies produce CLI stderr warnings and exit 0; records are not
+dropped or reassigned. Missing/invalid files, invalid consumed fields, and invalid
+match/team references exit 2. Bench membership is not evidence of playing time;
+event loading does not change the 1a match-sheet appearance flags or use
+`currentTeamId` as affiliation.
+
+**Real-data smoke: not run.** No accessible `events_Germany.json`, event archive,
+or prior real-match sample was found in the current workspace or accessible
+temporary directories. The 0b/1a temporary evidence directories were no longer
+present in this environment. No automatic dataset download was attempted. The
+1a metadata smoke above is a historical result and does not validate this event
+loader on real data. Only explicitly synthetic event records were exercised;
+no actual German-season event count or real discrepancy totals are claimed.
+Primary Figshare release/license checks remain pending; the blocked 0b probes
+were not re-run during 1b.
+
+To run the missing smoke later, supply the three 1a metadata files plus the
+original `events_Germany.json` in an external directory and run the README's
+`--events` command. Record the source/version, file hashes, exit status, and actual
+summary/warnings. Do not infer full-season success from a sample or synthetic test.
+
 ## Remaining access checks
 
 The saved environment draft adds `figshare.com`, `api.figshare.com`,
@@ -204,6 +262,6 @@ No token requirement has been established by these proxy denials.
 
 Keep all third-party files outside Git. The repository's ignored root `data/`
 is a safeguard, not a license grant; PublicWyscoutLoader's different default
-directory is not covered by that ignore rule. After 1a, only local match/player/team
-metadata loading and match-sheet participation are implemented. Events, minutes,
-metrics, matching, and UI remain unimplemented.
+directory is not covered by that ignore rule. After 1b, local match/player/team
+metadata, match-sheet participation, and optional raw event loading/validation are
+implemented. Minutes, metrics, matching, and UI remain unimplemented.

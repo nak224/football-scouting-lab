@@ -1,12 +1,26 @@
 # Architecture
 
-## Implemented through Milestone 1a
+## Implemented through Milestone 1b
 
 The project contains one Python package under `src/football_scouting_lab/`.
 `wyscout.py` loads three local JSON arrays: `matches_Germany.json`, `players.json`,
 and `teams.json`. `load_season(data_dir)` returns a `SeasonMetadata` object with
 the original records indexed by `wyId` and a tuple of `PlayerParticipation` facts.
 `python -m football_scouting_lab --data-dir ...` summarizes those records.
+
+`load_events(data_dir, metadata)` separately reads `events_Germany.json` and
+returns `SeasonEvents`: raw records indexed by the source `id` and three sets of
+event IDs identifying unknown players, missing player metadata, and players not
+listed in the corresponding match-team squad. The latter two categories can
+overlap. Player ID `0` belongs only to the unknown category. `--events` enables
+loading and summary output; without it, the event file is not read.
+
+Event IDs, type/subtype fields, tags, coordinates, periods, timestamps, extra
+fields, and source order are retained. Consumed fields, unique event IDs, and
+match/team references are validated. An event's team must belong to that specific
+loaded match. Player discrepancies are nonfatal and do not alter the event,
+metadata affiliation, or match-sheet appearance flags. No clock normalization,
+sorting, minutes, event-derived eligibility, or performance metrics are computed.
 
 Participation records preserve match, team, and player IDs and distinguish
 starting, being listed on the bench, entering, and leaving as a substitute.
@@ -20,10 +34,12 @@ substitution list order are validated. Missing player metadata is exposed throug
 inconsistencies raise `MetadataError`. Extra fields remain unchanged and are not
 fully validated. A subset can load without claiming complete season coverage.
 
-Synthetic fixtures and focused tests cover loading, validation, historical
-affiliation, participation, and CLI behavior. GitHub Actions runs Ruff and pytest.
-There are no added runtime dependencies, downloads, events, minutes, metrics,
-matching, services, or UI. Third-party files remain outside Git.
+Synthetic fixtures and focused tests cover metadata/event loading, validation,
+player discrepancies, historical affiliation, participation, and both CLI modes.
+GitHub Actions runs Ruff and pytest. There are no added runtime dependencies,
+downloads, minutes, metrics, matching, services, or UI. Third-party files remain
+outside Git. A real-event smoke remains unrun because no accessible local source
+file was available in the 1b environment.
 
 ## MVP v0.1 boundary
 
@@ -43,21 +59,22 @@ graph ML, authentication, or deployment. It needs no separate API service.
 
 ## Component status and planned data flow
 
-Only the local metadata loading and match-sheet facts described above are
-implemented. All scoring, event handling, timed participation, and UI remain planned.
+Local metadata loading, match-sheet facts, and optional raw-event validation are
+implemented. Event normalization, scoring, timed participation, and UI remain planned.
 
 | Component | Intended responsibility | Status |
 | --- | --- | --- |
-| Source access and normalization | Local match/player/team loading and match-sheet participation exist; primary-release verification, events, timed participation, and further normalization are pending | Partly implemented (1a) |
+| Source access and normalization | Local metadata and optional raw events can load; primary-release/real-event verification, timed participation, and further normalization are pending | Partly implemented (1a–1b) |
 | Cohort and analytics | Establish reviewed central-midfielder eligibility, a minutes threshold, documented event-derived metrics, units, and normalization within the eligible cohort | Planned |
 | Role profiles and weights | Define explicit Deep-Lying Playmaker and Ball-Winning Midfielder profiles; let scouts customize metric weights and see the effects | Planned |
 | Player comparison and replacements | Return separate style-similarity, role-fit, and team-fit results with feature contributions and eligibility filters | Planned |
 | Lineup compatibility | Let scouts choose a historical team baseline, edit lineup membership and assigned roles, and inspect candidate profile balance in the selected slot | Planned |
 | Local UI and scouting search | Explore players, filter the eligible cohort, adjust weights and lineup context, and inspect comparison/replacement explanations | Planned |
 
-The implemented flow is local JSON files → original records and match-sheet
-participation facts → summary CLI. The planned extension is verified source data
-→ event normalization and participation intervals → eligible player metrics →
+The implemented flow is local JSON files → original records, match-sheet
+participation facts, and optional event discrepancies → summary CLI. The planned
+extension is verified source data → event normalization and participation
+intervals → eligible player metrics →
 separate comparison/fit results → local exploration and search. Scouting search
 is structured filtering and ranking. Semantic retrieval and an API are outside
 this MVP.
