@@ -1,13 +1,29 @@
 # Architecture
 
-## Implemented through Milestone 0b
+## Implemented through Milestone 1a
 
-The project currently contains one small Python package under
-`src/football_scouting_lab/`, an import smoke test under `tests/`, and development
-tooling configured in `pyproject.toml`. GitHub Actions installs the package and
-runs Ruff and pytest. Milestone 0b aligns the MVP scope and documents an external
-Wyscout sample audit. There are no application services, ingestion pipelines,
-metrics, matching, or UI. Third-party samples remain outside the checkout.
+The project contains one Python package under `src/football_scouting_lab/`.
+`wyscout.py` loads three local JSON arrays: `matches_Germany.json`, `players.json`,
+and `teams.json`. `load_season(data_dir)` returns a `SeasonMetadata` object with
+the original records indexed by `wyId` and a tuple of `PlayerParticipation` facts.
+`python -m football_scouting_lab --data-dir ...` summarizes those records.
+
+Participation records preserve match, team, and player IDs and distinguish
+starting, being listed on the bench, entering, and leaving as a substitute.
+Being an unused substitute is not counted as an appearance. Team affiliation is
+derived per match from `teamsData`; `currentTeamId` is retained only as opaque raw
+metadata. A player can legitimately represent different teams in different matches.
+
+Consumed fields, season IDs, uniqueness, home/away teams, squad membership, and
+substitution list order are validated. Missing player metadata is exposed through
+`missing_player_ids` without synthesizing records; unknown teams and structural
+inconsistencies raise `MetadataError`. Extra fields remain unchanged and are not
+fully validated. A subset can load without claiming complete season coverage.
+
+Synthetic fixtures and focused tests cover loading, validation, historical
+affiliation, participation, and CLI behavior. GitHub Actions runs Ruff and pytest.
+There are no added runtime dependencies, downloads, events, minutes, metrics,
+matching, services, or UI. Third-party files remain outside Git.
 
 ## MVP v0.1 boundary
 
@@ -25,23 +41,26 @@ no empty layers or framework dependencies are needed now.
 MVP v0.1 has no LLMs, embeddings, semantic retrieval, FastAPI, PostgreSQL,
 graph ML, authentication, or deployment. It needs no separate API service.
 
-## Planned components and data flow
+## Component status and planned data flow
 
-Every component below is **planned, not implemented**.
+Only the local metadata loading and match-sheet facts described above are
+implemented. All scoring, event handling, timed participation, and UI remain planned.
 
 | Component | Intended responsibility | Status |
 | --- | --- | --- |
-| Source access and normalization | After release/license verification, read the German season, retain original IDs and provenance, join match/event/player/team records, and validate lineups and minutes | Planned |
+| Source access and normalization | Local match/player/team loading and match-sheet participation exist; primary-release verification, events, timed participation, and further normalization are pending | Partly implemented (1a) |
 | Cohort and analytics | Establish reviewed central-midfielder eligibility, a minutes threshold, documented event-derived metrics, units, and normalization within the eligible cohort | Planned |
 | Role profiles and weights | Define explicit Deep-Lying Playmaker and Ball-Winning Midfielder profiles; let scouts customize metric weights and see the effects | Planned |
 | Player comparison and replacements | Return separate style-similarity, role-fit, and team-fit results with feature contributions and eligibility filters | Planned |
 | Lineup compatibility | Let scouts choose a historical team baseline, edit lineup membership and assigned roles, and inspect candidate profile balance in the selected slot | Planned |
 | Local UI and scouting search | Explore players, filter the eligible cohort, adjust weights and lineup context, and inspect comparison/replacement explanations | Planned |
 
-The intended flow is verified local source files → normalized records and
-participation intervals → eligible player metrics → separate comparison/fit
-results → local exploration and search. Scouting search is structured filtering
-and ranking. Semantic retrieval and an API are outside this MVP.
+The implemented flow is local JSON files → original records and match-sheet
+participation facts → summary CLI. The planned extension is verified source data
+→ event normalization and participation intervals → eligible player metrics →
+separate comparison/fit results → local exploration and search. Scouting search
+is structured filtering and ranking. Semantic retrieval and an API are outside
+this MVP.
 
 ## Keep three questions separate
 
@@ -81,5 +100,6 @@ Direct Figshare metadata/download access and rendered socceraction documentation
 were blocked during 0b. A GitHub mirror sample and upstream loader source were
 accessible, but the primary release license and file checksums still need checking.
 See [data sources](data-sources.md) for evidence and attribution requirements.
-Resolve these gates before ingestion. Keep data outside Git and add dependencies
-only with the implementation milestone that needs them.
+The local loader and its mirror smoke test do not resolve those release/usage
+checks. Resolve them before accepting original source data for published analysis.
+Keep data outside Git and add dependencies only with the milestone that needs them.
