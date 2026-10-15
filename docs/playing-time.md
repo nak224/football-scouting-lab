@@ -5,7 +5,9 @@
 `PlayerMinutes` rows, and warnings. Each row preserves match/team/player IDs and
 has `minutes: float | None` plus its own warnings. Only starters and substitutes
 recorded as entering are included; unused bench players are excluded. No season
-statistics, per-90 metrics, or role scores are calculated.
+statistics, per-90 metrics, or role scores are calculated by this function.
+Milestone 2a's separate [metric aggregation](metrics.md) consumes these estimates
+without changing the conservative conventions below.
 
 ## Period duration and completeness
 

@@ -1,6 +1,6 @@
 # Architecture
 
-## Implemented through Milestone 1c
+## Implemented through Milestone 2a
 
 The project contains one Python package under `src/football_scouting_lab/`.
 `wyscout.py` loads three local JSON arrays: `matches_Germany.json`, `players.json`,
@@ -31,6 +31,15 @@ period/card timestamps, excludes unused substitutes, and never fills missing
 timing with 90 minutes. Ambiguous or unusable timing produces `None`. See
 [playing-time conventions](playing-time.md) for the scoped regular-time rules.
 
+`metrics.py` adds `calculate_metrics(metadata, events)`. It groups raw records
+by original player ID and historical team, retaining player-match counts,
+minutes, sample sizes and warnings. All observed counts remain separate from
+counts on positive-minute appearances; only the latter supply per-90 rates.
+The existing estimator is unchanged. Missing outcomes, unknown actors and events
+without recorded appearances are reported rather than imputed. The CLI's optional
+`--metrics-csv` loads events and writes a new external CSV. See
+[metric definitions and the season coverage audit](metrics.md).
+
 Participation records preserve match, team, and player IDs and distinguish
 starting, being listed on the bench, entering, and leaving as a substitute.
 Being an unused substitute is not counted as an appearance. Team affiliation is
@@ -44,11 +53,13 @@ inconsistencies raise `MetadataError`. Extra fields remain unchanged and are not
 fully validated. A subset can load without claiming complete season coverage.
 
 Synthetic fixtures and focused tests cover metadata/event loading, validation,
-player discrepancies, historical affiliation, participation, and both CLI modes.
+player discrepancies, historical affiliation, participation, metric definitions,
+matched denominators, transfers, uncertainty and CLI/export modes.
 GitHub Actions runs Ruff and pytest. There are no added runtime dependencies,
-automatic downloads, per-90 metrics, matching, services, or UI. Third-party files
+automatic downloads, role scores, matching, services, or UI. Third-party files
 remain outside Git. The 1c raw-mirror smoke loaded 519,407 events and exercised
-three match-level estimates; it does not verify the whole original event archive.
+three match-level estimates. The 2a audit exercised all 306 matches and exported
+485 player/team metric rows; neither verifies the whole original event archive.
 
 ## MVP v0.1 boundary
 
@@ -68,22 +79,23 @@ graph ML, authentication, or deployment. It needs no separate API service.
 
 ## Component status and planned data flow
 
-Local metadata, match-sheet facts, raw-event validation, and conservative
-match-level minutes are implemented. Further normalization, scoring, and UI remain planned.
+Local metadata, match-sheet facts, raw-event validation, conservative match-level
+minutes and covered event metrics are implemented. Cohort eligibility, scoring
+and UI remain planned.
 
 | Component | Intended responsibility | Status |
 | --- | --- | --- |
 | Source access and normalization | Metadata, raw-mirror event validation, and match-level minutes exist; original event-binary verification and further normalization remain pending | Partly implemented (1a–1c) |
-| Cohort and analytics | Establish reviewed central-midfielder eligibility, a minutes threshold, documented event-derived metrics, units, and normalization within the eligible cohort | Planned |
+| Cohort and analytics | Event metrics, sample coverage and matched per-90 rates exist; reviewed central-midfielder eligibility, minimum sample threshold and cohort normalization remain pending | Partly implemented (2a) |
 | Role profiles and weights | Define explicit Deep-Lying Playmaker and Ball-Winning Midfielder profiles; let scouts customize metric weights and see the effects | Planned |
 | Player comparison and replacements | Return separate style-similarity, role-fit, and team-fit results with feature contributions and eligibility filters | Planned |
 | Lineup compatibility | Let scouts choose a historical team baseline, edit lineup membership and assigned roles, and inspect candidate profile balance in the selected slot | Planned |
 | Local UI and scouting search | Explore players, filter the eligible cohort, adjust weights and lineup context, and inspect comparison/replacement explanations | Planned |
 
 The implemented flow is local JSON files → original records, match-sheet
-participation facts, and optional event discrepancies → summary CLI. The planned
-extension is verified source data → event normalization and participation
-intervals → eligible player metrics →
+participation facts, and optional event discrepancies → match minutes and
+covered player/team metrics → summary CLI / optional CSV. The planned extension
+is reviewed source completeness and cohort eligibility → eligible player metrics →
 separate comparison/fit results → local exploration and search. Scouting search
 is structured filtering and ranking. Semantic retrieval and an API are outside
 this MVP.
@@ -119,8 +131,10 @@ application definitions, not source annotations.
 Event `positions` describe action locations on a 0–100 scale, not continuous
 player tracking. Confirm coordinate orientation before defining spatial metrics.
 The minutes function now derives estimates from participation and timing records.
-Its warnings/unknown values, sample sizes, missing player IDs, and name encoding
-must be addressed before per-90 calculations or rankings; none are implemented here.
+Per-90 rates now use only matched positive-minute samples with explicit warnings
+and missing coverage. The full-season audit retained conservative exclusions in
+39 matches and found uneven team coverage. Completeness policy, minimum sample
+threshold, missing identities and name encoding still need review before rankings.
 
 Direct Figshare metadata/download access and rendered socceraction documentation
 were blocked during 0b. A GitHub mirror sample and upstream loader source were
