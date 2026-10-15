@@ -106,8 +106,9 @@ cannot enter the shortlist. Other transferred players retain separate historical
 team rows; no cross-team aggregation or automatic deduplication is added.
 
 These are candidates by measured style alone, with no role-fit blend, availability,
-transfer feasibility, team compatibility or lineup assessment. Separate role
-results can later be joined by original player/team IDs for display.
+transfer feasibility, team compatibility or lineup assessment. The separate
+[3b recruitment workflow](recruitment.md) joins original style and role results
+and optionally ranks their weighted sum; this style API remains unchanged.
 
 ## Local example and Python API
 

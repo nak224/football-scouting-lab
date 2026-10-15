@@ -406,5 +406,7 @@ templates; [role documentation](roles.md) records the limited secondary evidence
 for its four-player positional-proxy demo. This does not verify historical match
 positions or alter the football-data provenance above. Milestone 3a adds
 independent [style similarity and a basic shortlist](similarity.md) using that
-unchanged demo cohort and the same rated measurements. Broader recommendation
-workflows, team compatibility and UI remain unimplemented.
+unchanged demo cohort and the same rated measurements. Milestone 3b's
+[combined replacement ranking](recruitment.md) composes existing style and role
+results with user priorities; it adds no source data or position claims.
+Broader exploration workflows, team compatibility and UI remain unimplemented.
