@@ -1,6 +1,6 @@
 # Architecture
 
-## Implemented through Milestone 2a
+## Implemented through Milestone 2b
 
 The project contains one Python package under `src/football_scouting_lab/`.
 `wyscout.py` loads three local JSON arrays: `matches_Germany.json`, `players.json`,
@@ -40,6 +40,14 @@ without recorded appearances are reported rather than imputed. The CLI's optiona
 `--metrics-csv` loads events and writes a new external CSV. See
 [metric definitions and the season coverage audit](metrics.md).
 
+`roles.py` adds explicit player/team position reviews and configurable rated-minute
+and appearance-coverage thresholds. `score_role` reuses the 2a rated metrics,
+excludes incomplete candidates, and returns weighted empirical percentile fits
+with measurements, contributions, samples and reference IDs. No broad Midfielder
+label or current club is used to infer central midfield. The opt-in local example
+contains four documented, manually reviewed positional-proxy entries; expanding
+or validating that demonstration cohort remains review work. See [roles](roles.md).
+
 Participation records preserve match, team, and player IDs and distinguish
 starting, being listed on the bench, entering, and leaving as a substitute.
 Being an unused substitute is not counted as an appearance. Team affiliation is
@@ -56,8 +64,8 @@ Synthetic fixtures and focused tests cover metadata/event loading, validation,
 player discrepancies, historical affiliation, participation, metric definitions,
 matched denominators, transfers, uncertainty and CLI/export modes.
 GitHub Actions runs Ruff and pytest. There are no added runtime dependencies,
-automatic downloads, role scores, matching, services, or UI. Third-party files
-remain outside Git. The 1c raw-mirror smoke loaded 519,407 events and exercised
+automatic downloads, style similarity, recommendations, services, or UI.
+Third-party files remain outside Git. The 1c raw-mirror smoke loaded 519,407 events and exercised
 three match-level estimates. The 2a audit exercised all 306 matches and exported
 485 player/team metric rows; neither verifies the whole original event archive.
 
@@ -65,7 +73,7 @@ three match-level estimates. The 2a audit exercised all 306 matches and exported
 
 The intended users are professional recruitment scouts. The only dataset in
 scope is Wyscout Bundesliga 2017/18, and the only player cohort is central
-midfielders. The two planned role profiles are Deep-Lying Playmaker and
+midfielders. The two implemented role templates are Deep-Lying Playmaker and
 Ball-Winning Midfielder. The total development budget is 25–40 hours, including
 0a–0b; the allocation is in the [README](../README.md).
 
@@ -80,32 +88,34 @@ graph ML, authentication, or deployment. It needs no separate API service.
 ## Component status and planned data flow
 
 Local metadata, match-sheet facts, raw-event validation, conservative match-level
-minutes and covered event metrics are implemented. Cohort eligibility, scoring
+minutes, covered event metrics, explicit cohort eligibility and role fits are
+implemented. Broader cohort validation, style similarity, replacements, team fit
 and UI remain planned.
 
 | Component | Intended responsibility | Status |
 | --- | --- | --- |
 | Source access and normalization | Metadata, raw-mirror event validation, and match-level minutes exist; original event-binary verification and further normalization remain pending | Partly implemented (1a–1c) |
-| Cohort and analytics | Event metrics, sample coverage and matched per-90 rates exist; reviewed central-midfielder eligibility, minimum sample threshold and cohort normalization remain pending | Partly implemented (2a) |
-| Role profiles and weights | Define explicit Deep-Lying Playmaker and Ball-Winning Midfielder profiles; let scouts customize metric weights and see the effects | Planned |
+| Cohort and analytics | Event metrics, covered per-90 rates, configurable eligibility thresholds and explicit pair-level reviews exist; the four-player positional-proxy demo needs broader validation | Implemented API / limited demo (2a–2b) |
+| Role profiles and weights | Deep-Lying Playmaker and Ball-Winning Midfielder templates, normalized custom weights, cohort percentiles and contributions | Implemented Python API (2b); UI planned |
 | Player comparison and replacements | Return separate style-similarity, role-fit, and team-fit results with feature contributions and eligibility filters | Planned |
 | Lineup compatibility | Let scouts choose a historical team baseline, edit lineup membership and assigned roles, and inspect candidate profile balance in the selected slot | Planned |
 | Local UI and scouting search | Explore players, filter the eligible cohort, adjust weights and lineup context, and inspect comparison/replacement explanations | Planned |
 
 The implemented flow is local JSON files → original records, match-sheet
 participation facts, and optional event discrepancies → match minutes and
-covered player/team metrics → summary CLI / optional CSV. The planned extension
-is reviewed source completeness and cohort eligibility → eligible player metrics →
-separate comparison/fit results → local exploration and search. Scouting search
+covered player/team metrics → summary CLI / optional CSV or explicit cohort
+reviews and eligibility → explained role fit / local example. The planned extension
+adds broader source/cohort validation, separate style/team comparisons and
+replacements → local exploration and search. Scouting search
 is structured filtering and ranking. Semantic retrieval and an API are outside
 this MVP.
 
 ## Keep three questions separate
 
-| Result | Question | Planned basis |
+| Result | Question | Basis and status |
 | --- | --- | --- |
 | Style similarity | Does this candidate play similarly to the selected player? | Distance between comparable, normalized playing-style features, with explicit selected metric weights |
-| Role fit | Does this candidate meet the selected role profile? | Transparent metric targets and weights for Deep-Lying Playmaker or Ball-Winning Midfielder |
+| Role fit | Does this candidate match the selected role template? | Implemented: weighted cohort-relative percentiles for Deep-Lying Playmaker or Ball-Winning Midfielder; not validated tactical ground truth |
 | Team fit | Does this candidate complement the chosen lineup in the intended slot? | Lightweight profile coverage/balance against the user-edited lineup and assigned roles |
 
 Similar style does not establish quality, role suitability, or team compatibility.
@@ -123,10 +133,10 @@ or current transfer-market information is supplied by this event dataset.
 ## Data constraints and implementation gates
 
 The inspected player metadata provides only broad labels such as `Midfielder`,
-not a reliable central-midfielder designation or the two MVP role labels. Plan a
-reviewed central-midfielder inclusion list/rule using football context; document
-ambiguity rather than treating every midfielder as central. Role profiles are
-application definitions, not source annotations.
+not a reliable central-midfielder designation or the two MVP role labels. The
+explicit review interface and four-player positional-proxy example address the
+demonstration scope; stronger football evidence and broader cohort review remain
+necessary. Role profiles are application definitions, not source annotations.
 
 Event `positions` describe action locations on a 0–100 scale, not continuous
 player tracking. Confirm coordinate orientation before defining spatial metrics.
@@ -134,7 +144,8 @@ The minutes function now derives estimates from participation and timing records
 Per-90 rates now use only matched positive-minute samples with explicit warnings
 and missing coverage. The full-season audit retained conservative exclusions in
 39 matches and found uneven team coverage. Completeness policy, minimum sample
-threshold, missing identities and name encoding still need review before rankings.
+threshold calibration, missing identities and name encoding still need review
+before interpreting role rankings beyond the limited demonstration cohort.
 
 Direct Figshare metadata/download access and rendered socceraction documentation
 were blocked during 0b. A GitHub mirror sample and upstream loader source were

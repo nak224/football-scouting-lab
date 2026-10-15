@@ -4,8 +4,9 @@
 season rows grouped by **original player ID and historical team ID**. It retains
 each player-match's counts, estimated minutes, recorded-appearance flag, event
 sample size, and warnings, plus every match's playing-time result. Transfers
-remain separate team rows. There is no central-midfielder cohort filter yet;
-these metrics apply to all observed players, without role scores or rankings.
+remain separate team rows. This metrics function applies to all observed players,
+without role scores or rankings. Milestone 2b's separate [role API](roles.md)
+applies explicit cohort reviews, eligibility thresholds and explained role fits.
 
 ## Verified definitions
 
@@ -55,7 +56,8 @@ and interception rates remain independent of those outcome tags.
 - Match/player warnings remain available. Numeric estimates with warnings, such
   as the documented halftime convention, remain eligible; numeric does not mean
   official or exact. See [playing time](playing-time.md). No estimator rule was
-  relaxed in 2a, and no minimum scouting sample threshold is imposed yet.
+  relaxed in 2a, and this metrics function imposes no minimum scouting sample
+  threshold. The separate 2b eligibility layer has configurable cutoffs.
 
 The CLI's `--metrics-csv /external/new-output.csv` implies `--events`. It prints
 duration/appearance coverage, excluded match reasons and event discrepancies.

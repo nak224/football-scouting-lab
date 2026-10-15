@@ -401,5 +401,8 @@ Keep all third-party files outside Git. The repository's ignored root `data/`
 is a safeguard, not a license grant; PublicWyscoutLoader's different default
 directory is not covered by that ignore rule. After 2a, local metadata, raw events,
 conservative match-level minutes and covered per-90 metrics are implemented.
-Cohort eligibility, role scores, matching, recommendations, team compatibility
-and UI remain unimplemented.
+Milestone 2b adds explicit cohort reviews, eligibility cutoffs and weighted role
+templates; [role documentation](roles.md) records the limited secondary evidence
+for its four-player positional-proxy demo. This does not verify historical match
+positions or alter the football-data provenance above. Matching, recommendations,
+team compatibility and UI remain unimplemented.
