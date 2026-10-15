@@ -7,13 +7,15 @@ midfielders in **Wyscout Bundesliga 2017/18**. The total development target is
 
 ## Current status
 
-**Milestone 1c: raw-event validation and match-level playing-time estimates.**
-The loader has been exercised on the documented mirror's complete raw German
-ZIP member. Finite coordinate outliers remain unchanged with explicit warnings.
-A small function estimates minutes from match sheets and event timing, preserving
-identity and returning unknown values/warnings when timing cannot be resolved.
-Tests use explicitly synthetic records. Per-90 metrics, matching, and UI remain
-unimplemented.
+**Milestone 2a: event-derived player/team metrics with explicit coverage.**
+Passes, accurate passes, completion percentage, interception-tagged events and
+won ground defending duels are implemented. Observed counts stay separate from
+the matched positive-minute sample used for per-90 rates. Historical team IDs,
+match-level estimates and warnings are retained; tests use synthetic records.
+The real raw-mirror audit found usable durations in **267/306 matches** and
+positive minutes for **7,395/8,501 appearances**. Coverage varies by team.
+The conservative estimator is unchanged. Cohort selection, role scores,
+matching and UI remain planned. See [metric definitions and audit](docs/metrics.md).
 
 There are no runtime dependencies or third-party datasets in Git. Figshare item
 metadata now confirms CC BY 4.0, and the small mirror metadata files match its
@@ -159,20 +161,45 @@ unresolved clock ambiguity can yield `None`; inspect both match and player
 warnings. See [playing-time conventions](docs/playing-time.md) for halftime,
 second-half/stoppage clocks, dismissals, and the conservative completeness rule.
 
+## Export player metrics
+
+Supply the same four local JSON files and choose a **new output path outside
+Git** in an existing directory:
+
+```sh
+python -m football_scouting_lab --data-dir /absolute/path/to/wyscout-metadata \
+  --metrics-csv /absolute/path/to/new-player-metrics.csv
+```
+
+This implies `--events`, prints coverage and excluded-match reasons, and writes
+one row per original player ID and historical team. Existing files are never
+overwritten. Metadata-only and `--events` commands keep their existing behavior.
+The CSV separates `observed_*` counts from `rated_*` counts on the same matches
+as `rated_minutes`; only the latter supply per-90 numerators. Match IDs, sample
+sizes and warnings are included. Empty values mean unknown, not zero.
+
+The Python API is `calculate_metrics(metadata, events)` from
+`football_scouting_lab.metrics`; each returned season row retains its individual
+player-match rows. Read [metrics](docs/metrics.md) for exact Wyscout definitions,
+missing outcomes, source verification, real output and sampling bias. These are
+partial-season observations across all positions, not reviewed midfielder
+eligibility or rankings.
+
 ## Milestones and budget
 
 0a, the 0b source audit, 1a metadata, 1b events, and 1c match-level playing-time
-estimates are implemented. Remaining implementation requires review. These are
-budget allocations, not recorded hours; the ranges sum to the 25–40-hour target.
+estimates, plus 2a covered player metrics, are implemented. Remaining work
+requires review. These are budget allocations, not recorded hours; the ranges
+sum to the 25–40-hour target.
 
 | Milestone | Scope | Budget | Status |
 | --- | --- | --- | --- |
 | 0a–0b | Foundation, MVP scope, and source verification | 3–5 h | Foundation and audit implemented; primary-source checks blocked |
 | 1 | Resolve source/license checks; ingest, normalize, and validate the German season and cohort | 6–8 h | Metadata, raw-mirror event validation, and match minutes implemented; original event-binary verification and cohort remain pending |
-| 2 | Auditable metrics, minutes eligibility, two role profiles, and custom weights | 5–8 h | Planned |
+| 2 | Auditable metrics, minutes eligibility, two role profiles, and custom weights | 5–8 h | 2a metrics and coverage audit implemented; cohort/threshold decisions, roles and weights remain planned |
 | 3 | Separate similarity/fit scores, replacement recommendations, and lineup compatibility | 5–8 h | Planned |
 | 4 | Lightweight local player exploration and structured scouting search UI | 4–7 h | Planned |
 | 5 | End-to-end checks, explanations, and portfolio documentation | 2–4 h | Planned |
 
 See [architecture](docs/architecture.md) for the planned design and score
-boundaries. Milestone 1c stops here; further implementation requires review.
+boundaries. Milestone 2a stops here; further implementation requires review.

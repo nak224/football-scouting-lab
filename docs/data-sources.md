@@ -346,6 +346,46 @@ See [playing-time conventions](playing-time.md) for halftime, second-half and
 stoppage clocks, dismissal precedence, uncertainty, and unsupported cases. No
 season scouting statistics or per-90 measures were generated.
 
+## Milestone 2a taxonomy verification — 2026-10-15
+
+Primary Figshare mapping-item APIs returned HTTP 200:
+
+| Official mapping item (version 1, CC BY 4.0) | File | Published MD5 |
+| --- | --- | --- |
+| [Event identifiers](https://api.figshare.com/v2/articles/11743836) | `eventid2name.csv`, file `21385245`, 1,001 bytes | `46daf16100ece0c743eedc9adcfea162` |
+| [Tag identifiers](https://api.figshare.com/v2/articles/11743818) | `tags2name.csv`, file `21385239`, 1,754 bytes | `e7acb14918d00e40c80a898b1da8fc39` |
+
+Direct `ndownloader.figshare.com/files/21385245` and `/21385239` requests
+returned HTTP 403. The official glossary at
+`https://dataglossary.wyscout.com/ground_defending_duel/` also returned a proxy
+CONNECT 403, so its rendered commercial definition was not inspected.
+
+Accessible copies of both dictionaries came from
+[`jakeyk11/football-data-analytics` at `123790b78fab5c5f6e6d76eb31d78e85214797c9`](https://github.com/jakeyk11/football-data-analytics/tree/123790b78fab5c5f6e6d76eb31d78e85214797c9/data_directory/wyscout_data).
+These are **mapping-table copies**, separate from the pinned raw event mirror.
+Their original LF-form MD5s were respectively
+`b60a18e4a0e44bdd6f37ab84bea063a1` and
+`10b3c26e41dfe64984133c2b90d7efb4`. Converting only LF to CRLF reproduced
+**both exact published Figshare MD5s**. This verifies the dictionary contents
+subject to that explicit line-ending change, not a successful original binary
+download or verification of any event archive. The files stayed outside Git.
+
+Inspected mappings confirm Pass type `8` and subtypes `80`–`86`, Duel type `1`
+with Ground defending duel subtype `12`, Interception tag `1401`, Accurate /
+Not accurate tags `1801` / `1802`, and Lost / Neutral / Won tags `701` / `702` /
+`703`. The pinned socceraction tag table independently agrees on those tag IDs.
+The operational metrics count raw records by these exact semantics; no possession
+or spatial inference is added. See [metrics](metrics.md) for definitions,
+unknown outcomes, the complete-season minutes audit, methodology comparison,
+real smoke results and selection bias. Its estimator remains unchanged.
+
+The mapping articles request attribution to the data paper and collection cited
+above, plus Pappalardo et al. (2019), *PlayeRank: Data-driven Performance
+Evaluation and Player Ranking in Soccer via a Machine Learning Approach*, ACM
+TIST 10(5), Article 59, <https://doi.org/10.1145/3343172>. Retain this attribution
+when using or publishing the mapping-derived work; no third-party tables are
+redistributed in this repository.
+
 ## Remaining access checks
 
 The saved environment draft adds `figshare.com`, `api.figshare.com`,
@@ -359,6 +399,7 @@ No new token requirement is established by that proxy denial.
 
 Keep all third-party files outside Git. The repository's ignored root `data/`
 is a safeguard, not a license grant; PublicWyscoutLoader's different default
-directory is not covered by that ignore rule. After 1c, local metadata, raw events,
-and conservative match-level minutes are implemented. Per-90 metrics, role scores,
-matching, recommendations, team compatibility, and UI remain unimplemented.
+directory is not covered by that ignore rule. After 2a, local metadata, raw events,
+conservative match-level minutes and covered per-90 metrics are implemented.
+Cohort eligibility, role scores, matching, recommendations, team compatibility
+and UI remain unimplemented.
