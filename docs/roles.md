@@ -17,7 +17,8 @@ used to infer central midfield. Reviews do not propagate across transfers, and a
 review referring to an absent player/team is rejected rather than silently joined
 to a current club. Duplicate metric keys are also rejected.
 
-The opt-in example contains a **four-player demonstration cohort**, manually
+The examples and optional local UI share `demo_cohort.py`, containing the same
+**four-player demonstration cohort**, manually
 reviewed during implementation on 2026-10-15 using independent secondary
 positional proxies. It is deliberately limited and not a production-grade,
 match-by-match tactical-position annotation or exhaustive central-midfielder list.
