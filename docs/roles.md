@@ -5,6 +5,8 @@ changing its counts or minutes. These are transparent **application templates**,
 not source tactical labels, learned predictions, style similarity or team fit.
 Milestone 3a's separate [style-similarity API](similarity.md) reuses eligibility
 and samples without reading or combining these role scores.
+The separate [3b recruitment workflow](recruitment.md) optionally combines the
+original role and style scores with user priorities while preserving both results.
 
 ## Explicit cohort review
 

@@ -7,13 +7,14 @@ midfielders in **Wyscout Bundesliga 2017/18**. The total development target is
 
 ## Current status
 
-**Milestone 3a: explainable style similarity and a basic replacement shortlist.**
-Four existing rated measurements now support weighted player-to-player distance,
-with raw values and per-feature explanations. Shortlists exclude the reference
-player across all teams. Explicit position reviews and configurable sample
-thresholds are reused from 2b; tactical role fits remain separate. Local examples
+**Milestone 3b: explainable replacement ranking with adjustable priorities.**
+A small workflow composes the existing style similarity and selected tactical
+role fit, with a default 50/50 priority. Both original scores, explanations,
+weights, normalization cohorts and samples remain visible. Incomplete candidates
+and the reference player across all teams are excluded with reasons. Local demos
 use the unchanged four-player positional-proxy cohort, not verified match-position
-labels. See [similarity](docs/similarity.md) and [role fit](docs/roles.md).
+labels. See [replacement ranking](docs/recruitment.md),
+[similarity](docs/similarity.md) and [role fit](docs/roles.md).
 
 The [2a metrics](docs/metrics.md) retain separate observed and matched per-90
 samples. The raw-mirror audit found usable durations in **267/306 matches** and
@@ -31,8 +32,8 @@ event archive. Only the German member was downloaded via byte ranges. See
 
 ## Finalized MVP v0.1
 
-Eligibility, role-fit and style-shortlist Python functions exist. The complete
-user workflows and local interface below remain planned.
+Eligibility, role-fit, style-shortlist and combined-ranking Python functions exist.
+The complete exploration workflows and local interface below remain planned.
 
 - Explore central midfielders and use structured scouting search and filters.
 - Compare **Deep-Lying Playmaker** and **Ball-Winning Midfielder** profiles with
@@ -230,11 +231,28 @@ candidates receive no score. [Similarity documentation](docs/similarity.md)
 explains the bounded score, constant/tiny cohorts, transfers and actual real-data
 results. Scores are relative to this limited cohort and are not probabilities.
 
+## Demonstrate combined replacement ranking
+
+```sh
+python examples/replacement_ranking.py --data-dir /absolute/path/to/wyscout-metadata
+```
+
+This uses Weigl as reference, Deep-Lying Playmaker, `--style-priority 0.5` and
+limit 3. Select the other template with `--role ball_winning_midfielder`; adjust
+priority within [0, 1], reference, thresholds and limit using the example options.
+The `rank_replacements` API also accepts independent metric weights for each
+component. It requires both scores even at priorities 0 and 1, retains separate
+normalization contexts and never combines transferred players' statistics.
+See [recruitment](docs/recruitment.md) for the formula, source explanations,
+exclusion rules, custom-weight example and actual smoke results. No team fit is
+included in this ranking.
+
 ## Milestones and budget
 
 0a, the 0b source audit, 1a metadata, 1b events, and 1c match-level playing-time
 estimates, 2a covered player metrics, 2b eligibility/role fit and 3a style
-similarity/basic shortlists are implemented. Remaining work requires review.
+similarity/basic shortlists plus 3b combined replacement ranking are implemented.
+Remaining work requires review.
 These are budget allocations, not recorded hours;
 the ranges sum to the 25–40-hour target.
 
@@ -243,9 +261,9 @@ the ranges sum to the 25–40-hour target.
 | 0a–0b | Foundation, MVP scope, and source verification | 3–5 h | Foundation and audit implemented; primary-source checks blocked |
 | 1 | Resolve source/license checks; ingest, normalize, and validate the German season and cohort | 6–8 h | Metadata, raw-mirror event validation and match minutes implemented; original event-binary identity and broader cohort validation remain pending |
 | 2 | Auditable metrics, minutes eligibility, two role profiles, and custom weights | 5–8 h | 2a–2b APIs and limited cohort demo implemented; production cohort and threshold calibration require review |
-| 3 | Separate similarity/fit scores, replacement recommendations, and lineup compatibility | 5–8 h | 3a independent style similarity and basic shortlist implemented; combined workflows and team compatibility remain planned |
+| 3 | Separate similarity/fit scores, replacement recommendations, and lineup compatibility | 5–8 h | 3a–3b style similarity and adjustable combined replacement ranking implemented; team compatibility and full exploration workflows remain planned |
 | 4 | Lightweight local player exploration and structured scouting search UI | 4–7 h | Planned |
 | 5 | End-to-end checks, explanations, and portfolio documentation | 2–4 h | Planned |
 
 See [architecture](docs/architecture.md) for the planned design and score
-boundaries. Milestone 3a stops here; further implementation requires review.
+boundaries. Milestone 3b stops here; further implementation requires review.
