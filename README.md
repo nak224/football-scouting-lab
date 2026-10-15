@@ -7,19 +7,20 @@ midfielders in **Wyscout Bundesliga 2017/18**. The total development target is
 
 ## Current status
 
-**Milestone 2b: explicit midfielder eligibility and explainable role fit.**
-The existing event metrics now support reviewed player/team cohort decisions,
-configurable minute/coverage cutoffs and two weighted role templates. Every score
-shows original measurements and percentile contributions; incomplete candidates
-are excluded with reasons. A local example uses four manually reviewed,
-secondary positional-proxy entries, not verified match-position labels.
-See [role definitions and limitations](docs/roles.md).
+**Milestone 3a: explainable style similarity and a basic replacement shortlist.**
+Four existing rated measurements now support weighted player-to-player distance,
+with raw values and per-feature explanations. Shortlists exclude the reference
+player across all teams. Explicit position reviews and configurable sample
+thresholds are reused from 2b; tactical role fits remain separate. Local examples
+use the unchanged four-player positional-proxy cohort, not verified match-position
+labels. See [similarity](docs/similarity.md) and [role fit](docs/roles.md).
 
 The [2a metrics](docs/metrics.md) retain separate observed and matched per-90
 samples. The raw-mirror audit found usable durations in **267/306 matches** and
 positive minutes for **7,395/8,501 appearances**, with uneven team coverage.
-The conservative estimator is unchanged. Matching, recommendations and UI remain
-planned. Tests use synthetic data; real examples and source limits are documented.
+The conservative estimator is unchanged. Broader recommendations, team
+compatibility and UI remain planned. Tests use synthetic data; real examples
+and source limits are documented.
 
 There are no runtime dependencies or third-party datasets in Git. Figshare item
 metadata now confirms CC BY 4.0, and the small mirror metadata files match its
@@ -30,8 +31,8 @@ event archive. Only the German member was downloaded via byte ranges. See
 
 ## Finalized MVP v0.1
 
-Eligibility and role-fit Python functions exist; the following user workflows
-and local interface remain planned.
+Eligibility, role-fit and style-shortlist Python functions exist. The complete
+user workflows and local interface below remain planned.
 
 - Explore central midfielders and use structured scouting search and filters.
 - Compare **Deep-Lying Playmaker** and **Ball-Winning Midfielder** profiles with
@@ -212,11 +213,29 @@ rankings or verified tactical positions. See [roles](docs/roles.md) for source
 evidence, the normalization formula, a custom-weight example and actual smoke
 results. The existing metadata/event/CSV commands keep their behavior.
 
+## Demonstrate playing-style similarity
+
+Use the same external files and reviewed demonstration cohort:
+
+```sh
+python examples/player_similarity.py --data-dir /absolute/path/to/wyscout-metadata
+```
+
+The default reference is Weigl `(224677, 2447)`. The example prints a style-only
+shortlist, raw measurements, normalized differences, distance contributions,
+coverage and runtime. Configure the reference, sample thresholds and limit with
+the documented options; custom metric weights are available through
+`compare_styles`. Missing/ineligible references fail explicitly, and incomplete
+candidates receive no score. [Similarity documentation](docs/similarity.md)
+explains the bounded score, constant/tiny cohorts, transfers and actual real-data
+results. Scores are relative to this limited cohort and are not probabilities.
+
 ## Milestones and budget
 
 0a, the 0b source audit, 1a metadata, 1b events, and 1c match-level playing-time
-estimates, 2a covered player metrics and 2b eligibility/role fit are implemented.
-Remaining work requires review. These are budget allocations, not recorded hours;
+estimates, 2a covered player metrics, 2b eligibility/role fit and 3a style
+similarity/basic shortlists are implemented. Remaining work requires review.
+These are budget allocations, not recorded hours;
 the ranges sum to the 25–40-hour target.
 
 | Milestone | Scope | Budget | Status |
@@ -224,9 +243,9 @@ the ranges sum to the 25–40-hour target.
 | 0a–0b | Foundation, MVP scope, and source verification | 3–5 h | Foundation and audit implemented; primary-source checks blocked |
 | 1 | Resolve source/license checks; ingest, normalize, and validate the German season and cohort | 6–8 h | Metadata, raw-mirror event validation and match minutes implemented; original event-binary identity and broader cohort validation remain pending |
 | 2 | Auditable metrics, minutes eligibility, two role profiles, and custom weights | 5–8 h | 2a–2b APIs and limited cohort demo implemented; production cohort and threshold calibration require review |
-| 3 | Separate similarity/fit scores, replacement recommendations, and lineup compatibility | 5–8 h | Planned |
+| 3 | Separate similarity/fit scores, replacement recommendations, and lineup compatibility | 5–8 h | 3a independent style similarity and basic shortlist implemented; combined workflows and team compatibility remain planned |
 | 4 | Lightweight local player exploration and structured scouting search UI | 4–7 h | Planned |
 | 5 | End-to-end checks, explanations, and portfolio documentation | 2–4 h | Planned |
 
 See [architecture](docs/architecture.md) for the planned design and score
-boundaries. Milestone 2b stops here; further implementation requires review.
+boundaries. Milestone 3a stops here; further implementation requires review.

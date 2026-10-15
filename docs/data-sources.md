@@ -404,5 +404,7 @@ conservative match-level minutes and covered per-90 metrics are implemented.
 Milestone 2b adds explicit cohort reviews, eligibility cutoffs and weighted role
 templates; [role documentation](roles.md) records the limited secondary evidence
 for its four-player positional-proxy demo. This does not verify historical match
-positions or alter the football-data provenance above. Matching, recommendations,
-team compatibility and UI remain unimplemented.
+positions or alter the football-data provenance above. Milestone 3a adds
+independent [style similarity and a basic shortlist](similarity.md) using that
+unchanged demo cohort and the same rated measurements. Broader recommendation
+workflows, team compatibility and UI remain unimplemented.

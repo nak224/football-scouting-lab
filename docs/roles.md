@@ -3,6 +3,8 @@
 `football_scouting_lab.roles` consumes the existing `PlayerSeasonMetrics` without
 changing its counts or minutes. These are transparent **application templates**,
 not source tactical labels, learned predictions, style similarity or team fit.
+Milestone 3a's separate [style-similarity API](similarity.md) reuses eligibility
+and samples without reading or combining these role scores.
 
 ## Explicit cohort review
 
