@@ -61,6 +61,10 @@ def main(argv: list[str] | None = None) -> int:
                 events.unlisted_player_event_ids,
                 "reference players outside the match-team squad",
             ),
+            (
+                events.out_of_bounds_position_event_ids,
+                "have positions outside [0, 100]",
+            ),
         ):
             if event_ids:
                 print(

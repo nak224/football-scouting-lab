@@ -225,13 +225,15 @@ class SeasonEvents:
     """Original events and nonfatal player discrepancies, identified by event ID.
 
     Missing-metadata and unlisted-player categories can overlap. Player ID 0 is
-    an explicit unknown and belongs only to unknown_player_event_ids.
+    an explicit unknown and belongs only to unknown_player_event_ids. Finite
+    coordinate outliers retain their values and have a separate diagnostic set.
     """
 
     records: dict[int, dict[str, Any]]
     unknown_player_event_ids: frozenset[int]
     missing_player_metadata_event_ids: frozenset[int]
     unlisted_player_event_ids: frozenset[int]
+    out_of_bounds_position_event_ids: frozenset[int] = frozenset()
 
     @property
     def match_ids(self) -> frozenset[int]:
@@ -273,11 +275,7 @@ def _validate_event_fields(event: dict[str, Any], context: str) -> None:
         point_context = f"{context}.positions[{number}]"
         point = _object(value, point_context)
         for axis in ("x", "y"):
-            coordinate = _number(point.get(axis), f"{point_context}.{axis}")
-            if not 0 <= coordinate <= 100:
-                raise MetadataError(
-                    f"{point_context}.{axis}: expected a value in [0, 100]"
-                )
+            _number(point.get(axis), f"{point_context}.{axis}")
 
 
 def load_events(data_dir: str | Path, metadata: SeasonMetadata) -> SeasonEvents:
@@ -285,16 +283,23 @@ def load_events(data_dir: str | Path, metadata: SeasonMetadata) -> SeasonEvents:
 
     Invalid consumed fields and match/team references raise MetadataError.
     Unknown, unresolved, or unlisted players are retained with explicit event-ID
-    discrepancy sets. No event ordering, clock conversion, or minutes are derived.
+    discrepancy sets, as are finite coordinate outliers. No event ordering,
+    clock conversion, or minutes are derived by this loader.
     """
     events = _read_records(Path(data_dir) / "events_Germany.json", id_field="id")
     squad_members = {
         (row.match_id, row.team_id, row.player_id) for row in metadata.participation
     }
-    unknown, missing, unlisted = set(), set(), set()
+    unknown, missing, unlisted, outside = set(), set(), set(), set()
     for event_id, event in events.items():
         context = f"events_Germany.json event {event_id}"
         _validate_event_fields(event, context)
+        if any(
+            not 0 <= point[axis] <= 100
+            for point in event["positions"]
+            for axis in ("x", "y")
+        ):
+            outside.add(event_id)
         match_id = _identifier(event.get("matchId"), f"{context}.matchId")
         team_id = _identifier(event.get("teamId"), f"{context}.teamId")
         if match_id not in metadata.matches:
@@ -320,5 +325,9 @@ def load_events(data_dir: str | Path, metadata: SeasonMetadata) -> SeasonEvents:
             if (match_id, team_id, player_id) not in squad_members:
                 unlisted.add(event_id)
     return SeasonEvents(
-        events, frozenset(unknown), frozenset(missing), frozenset(unlisted)
+        events,
+        frozenset(unknown),
+        frozenset(missing),
+        frozenset(unlisted),
+        frozenset(outside),
     )
