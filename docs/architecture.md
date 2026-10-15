@@ -1,6 +1,6 @@
 # Architecture
 
-## Implemented through Milestone 2b
+## Implemented through Milestone 3a
 
 The project contains one Python package under `src/football_scouting_lab/`.
 `wyscout.py` loads three local JSON arrays: `matches_Germany.json`, `players.json`,
@@ -48,6 +48,15 @@ label or current club is used to infer central midfield. The opt-in local exampl
 contains four documented, manually reviewed positional-proxy entries; expanding
 or validating that demonstration cohort remains review work. See [roles](roles.md).
 
+`similarity.py` reuses eligibility assessments and the existing rated metrics,
+without consuming role scores or role weights. `compare_styles` fits a shared
+min/max scale on complete eligible rows, calculates weighted absolute feature
+distances and retains per-feature explanations and exclusions. A missing or
+ineligible reference fails explicitly. `replacement_shortlist` ranks the style
+results and removes the reference player across all teams before limiting output.
+The local demo reuses the same four reviews; [similarity](similarity.md) documents
+tiny/constant cohorts, the score transformation, sample context and real smoke.
+
 Participation records preserve match, team, and player IDs and distinguish
 starting, being listed on the bench, entering, and leaving as a substitute.
 Being an unused substitute is not counted as an appearance. Team affiliation is
@@ -64,7 +73,8 @@ Synthetic fixtures and focused tests cover metadata/event loading, validation,
 player discrepancies, historical affiliation, participation, metric definitions,
 matched denominators, transfers, uncertainty and CLI/export modes.
 GitHub Actions runs Ruff and pytest. There are no added runtime dependencies,
-automatic downloads, style similarity, recommendations, services, or UI.
+automatic downloads, combined recommendation scores, team compatibility,
+services, or UI.
 Third-party files remain outside Git. The 1c raw-mirror smoke loaded 519,407 events and exercised
 three match-level estimates. The 2a audit exercised all 306 matches and exported
 485 player/team metric rows; neither verifies the whole original event archive.
@@ -89,32 +99,33 @@ graph ML, authentication, or deployment. It needs no separate API service.
 
 Local metadata, match-sheet facts, raw-event validation, conservative match-level
 minutes, covered event metrics, explicit cohort eligibility and role fits are
-implemented. Broader cohort validation, style similarity, replacements, team fit
-and UI remain planned.
+implemented, along with independent style similarity and basic replacement
+shortlists. Broader cohort validation, combined workflows, team fit and UI remain
+planned.
 
 | Component | Intended responsibility | Status |
 | --- | --- | --- |
 | Source access and normalization | Metadata, raw-mirror event validation, and match-level minutes exist; original event-binary verification and further normalization remain pending | Partly implemented (1a–1c) |
 | Cohort and analytics | Event metrics, covered per-90 rates, configurable eligibility thresholds and explicit pair-level reviews exist; the four-player positional-proxy demo needs broader validation | Implemented API / limited demo (2a–2b) |
 | Role profiles and weights | Deep-Lying Playmaker and Ball-Winning Midfielder templates, normalized custom weights, cohort percentiles and contributions | Implemented Python API (2b); UI planned |
-| Player comparison and replacements | Return separate style-similarity, role-fit, and team-fit results with feature contributions and eligibility filters | Planned |
+| Player comparison and replacements | Weighted style distance and a basic shortlist with original IDs, contributions and sample context; no role-score blend | Implemented API/demo (3a); combined workflows and team fit remain planned |
 | Lineup compatibility | Let scouts choose a historical team baseline, edit lineup membership and assigned roles, and inspect candidate profile balance in the selected slot | Planned |
 | Local UI and scouting search | Explore players, filter the eligible cohort, adjust weights and lineup context, and inspect comparison/replacement explanations | Planned |
 
 The implemented flow is local JSON files → original records, match-sheet
 participation facts, and optional event discrepancies → match minutes and
 covered player/team metrics → summary CLI / optional CSV or explicit cohort
-reviews and eligibility → explained role fit / local example. The planned extension
-adds broader source/cohort validation, separate style/team comparisons and
-replacements → local exploration and search. Scouting search
-is structured filtering and ranking. Semantic retrieval and an API are outside
+reviews and eligibility → separate role fit or style distance/shortlist → local
+examples. The planned extension adds broader source/cohort validation, team fit
+and full exploration/replacement workflows → local exploration and search.
+Scouting search is structured filtering and ranking. Semantic retrieval and an API are outside
 this MVP.
 
 ## Keep three questions separate
 
 | Result | Question | Basis and status |
 | --- | --- | --- |
-| Style similarity | Does this candidate play similarly to the selected player? | Distance between comparable, normalized playing-style features, with explicit selected metric weights |
+| Style similarity | Does this candidate play similarly to the selected player? | Implemented: weighted absolute distance between min/max-normalized rated measurements, independent of role scoring |
 | Role fit | Does this candidate match the selected role template? | Implemented: weighted cohort-relative percentiles for Deep-Lying Playmaker or Ball-Winning Midfielder; not validated tactical ground truth |
 | Team fit | Does this candidate complement the chosen lineup in the intended slot? | Lightweight profile coverage/balance against the user-edited lineup and assigned roles |
 

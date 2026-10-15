@@ -7,6 +7,8 @@ sample size, and warnings, plus every match's playing-time result. Transfers
 remain separate team rows. This metrics function applies to all observed players,
 without role scores or rankings. Milestone 2b's separate [role API](roles.md)
 applies explicit cohort reviews, eligibility thresholds and explained role fits.
+The separate [3a similarity API](similarity.md) uses the same rated measurements
+and eligibility assessments for style distances and a basic replacement shortlist.
 
 ## Verified definitions
 
