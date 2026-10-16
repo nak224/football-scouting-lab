@@ -153,3 +153,11 @@ The [Streamlit app](ui.md) calls `rank_replacements` directly with the existing
 four reviews, separate component weights and eligibility thresholds. It shows
 source scores, weighted points, feature explanations, both normalization cohorts
 and exclusion reasons. The Python API and CLI examples retain their behavior.
+
+## Separate hypothetical lineup analysis (4b1)
+
+The [midfield-trio comparison](team-fit.md) describes before/after statistical
+feature coverage on a caller-selected fixed cohort. It does not call or change
+this ranking, blend a team-fit term into the combined score, or predict chemistry.
+The standalone example reuses the unchanged four reviews; UI integration waits
+for 4b2. Historical team rows remain explicit in both workflows.
