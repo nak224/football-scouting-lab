@@ -7,23 +7,24 @@ midfielders in **Wyscout Bundesliga 2017/18**. The total development target is
 
 ## Current status
 
-**Milestone 3b: explainable replacement ranking with adjustable priorities.**
-A small workflow composes the existing style similarity and selected tactical
-role fit, with a default 50/50 priority. Both original scores, explanations,
-weights, normalization cohorts and samples remain visible. Incomplete candidates
-and the reference player across all teams are excluded with reasons. Local demos
-use the unchanged four-player positional-proxy cohort, not verified match-position
-labels. See [replacement ranking](docs/recruitment.md),
+**Milestone 4a: local Streamlit scouting interface.** Search historical
+player/team rows, inspect covered passing/defensive metrics, and build a
+replacement shortlist with adjustable style/role priorities, metric weights and
+eligibility thresholds. Both source scores, feature explanations, normalization
+cohorts and exclusions remain visible. The unchanged four-player positional-proxy
+cohort is a limited demonstration, not verified match-position labels. See the
+[local UI guide](docs/ui.md), [replacement ranking](docs/recruitment.md),
 [similarity](docs/similarity.md) and [role fit](docs/roles.md).
 
 The [2a metrics](docs/metrics.md) retain separate observed and matched per-90
 samples. The raw-mirror audit found usable durations in **267/306 matches** and
 positive minutes for **7,395/8,501 appearances**, with uneven team coverage.
-The conservative estimator is unchanged. Broader recommendations, team
-compatibility and UI remain planned. Tests use synthetic data; real examples
+The conservative estimator is unchanged. Broader cohort validation and team
+compatibility remain planned. Tests use synthetic data; real examples
 and source limits are documented.
 
-There are no runtime dependencies or third-party datasets in Git. Figshare item
+The backend has no runtime dependencies; Streamlit is an optional `ui` extra.
+There are no third-party datasets in Git. Figshare item
 metadata now confirms CC BY 4.0, and the small mirror metadata files match its
 published checksums. The original event binary redirects to a blocked S3 host;
 the event smoke is **mirror-derived**, not verification of the whole original
@@ -33,7 +34,8 @@ event archive. Only the German member was downloaded via byte ranges. See
 ## Finalized MVP v0.1
 
 Eligibility, role-fit, style-shortlist and combined-ranking Python functions exist.
-The complete exploration workflows and local interface below remain planned.
+A local exploration/replacement interface also exists. Team compatibility below
+remains planned.
 
 - Explore central midfielders and use structured scouting search and filters.
 - Compare **Deep-Lying Playmaker** and **Ball-Winning Midfielder** profiles with
@@ -77,9 +79,31 @@ An import check is also available:
 python -c "import football_scouting_lab"
 ```
 
-CI installs the package with `python -m pip install ".[dev]"` and runs the same
-lint, format, and test commands. Development tools are pytest and Ruff; setuptools
-is the build backend.
+CI installs the package with `python -m pip install ".[dev,ui]"` and runs the same
+lint, format, and test commands, including synthetic Streamlit interaction tests.
+Without the UI extra, backend tests run and Streamlit interaction tests skip.
+Development tools are pytest and Ruff; setuptools is the build backend.
+
+## Run the local scouting interface
+
+From the repository root with the environment activated:
+
+```sh
+python -m pip install -e ".[ui]"
+python -m streamlit run streamlit_app.py
+```
+
+Supply a directory outside Git containing **matches_Germany.json, players.json,
+teams.json and events_Germany.json** in the sidebar, then select **Load season**.
+The app does not download or bundle data. It binds to the local machine and
+caches derived metrics so controls do not reprocess the raw events.
+
+Search a name or historical team in **Player explorer**. In **Replacement finder**,
+choose a reviewed reference and role, adjust priorities/weights/thresholds, then
+inspect the separate scores and feature explanations. Only four players have
+reviewed demo positions; unverified players remain visible in exploration and
+are excluded from recruitment ranking. Missing measurements stay unavailable.
+See [UI setup, example workflow, cache behavior and smoke results](docs/ui.md).
 
 ## Load local match metadata
 
@@ -251,7 +275,8 @@ included in this ranking.
 
 0a, the 0b source audit, 1a metadata, 1b events, and 1c match-level playing-time
 estimates, 2a covered player metrics, 2b eligibility/role fit and 3a style
-similarity/basic shortlists plus 3b combined replacement ranking are implemented.
+similarity/basic shortlists, 3b combined replacement ranking and 4a local scouting
+UI are implemented.
 Remaining work requires review.
 These are budget allocations, not recorded hours;
 the ranges sum to the 25–40-hour target.
@@ -261,9 +286,9 @@ the ranges sum to the 25–40-hour target.
 | 0a–0b | Foundation, MVP scope, and source verification | 3–5 h | Foundation and audit implemented; primary-source checks blocked |
 | 1 | Resolve source/license checks; ingest, normalize, and validate the German season and cohort | 6–8 h | Metadata, raw-mirror event validation and match minutes implemented; original event-binary identity and broader cohort validation remain pending |
 | 2 | Auditable metrics, minutes eligibility, two role profiles, and custom weights | 5–8 h | 2a–2b APIs and limited cohort demo implemented; production cohort and threshold calibration require review |
-| 3 | Separate similarity/fit scores, replacement recommendations, and lineup compatibility | 5–8 h | 3a–3b style similarity and adjustable combined replacement ranking implemented; team compatibility and full exploration workflows remain planned |
-| 4 | Lightweight local player exploration and structured scouting search UI | 4–7 h | Planned |
+| 3 | Separate similarity/fit scores, replacement recommendations, and lineup compatibility | 5–8 h | 3a–3b style similarity and adjustable combined replacement ranking implemented; team compatibility remains planned |
+| 4 | Lightweight local player exploration and structured scouting search UI | 4–7 h | 4a explorer and replacement finder implemented; limited four-player cohort |
 | 5 | End-to-end checks, explanations, and portfolio documentation | 2–4 h | Planned |
 
 See [architecture](docs/architecture.md) for the planned design and score
-boundaries. Milestone 3b stops here; further implementation requires review.
+boundaries. Milestone 4a stops here; further implementation requires review.

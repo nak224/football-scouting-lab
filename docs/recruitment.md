@@ -146,3 +146,10 @@ passing features, unequal missing-minute coverage, tactical context and unadjust
 possession remain limitations. A high combined score does not establish an
 actual recruitment recommendation; stronger cohort evidence and calibration
 are still needed before interpretation beyond this demonstration.
+
+## Local interface (4a)
+
+The [Streamlit app](ui.md) calls `rank_replacements` directly with the existing
+four reviews, separate component weights and eligibility thresholds. It shows
+source scores, weighted points, feature explanations, both normalization cohorts
+and exclusion reasons. The Python API and CLI examples retain their behavior.

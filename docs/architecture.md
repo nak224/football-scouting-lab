@@ -1,6 +1,6 @@
 # Architecture
 
-## Implemented through Milestone 3b
+## Implemented through Milestone 4a
 
 The project contains one Python package under `src/football_scouting_lab/`.
 `wyscout.py` loads three local JSON arrays: `matches_Germany.json`, `players.json`,
@@ -65,6 +65,20 @@ Missing scores are never zero-filled, even at priority endpoints. Historical
 team statistics stay separate. See [recruitment](recruitment.md) for the local
 four-player demo, configuration and real smoke; source algorithms are unchanged.
 
+`streamlit_app.py` adds one local Streamlit process with player exploration and
+replacement controls. It calls `rank_replacements`; no scoring algorithm moves
+into the frontend. `ui_data.py` prepares fresh presentation rows from existing
+metrics. `demo_cohort.py` shares the unchanged four reviews with the examples.
+Streamlit is an optional `ui` extra; the backend remains dependency-free.
+
+The data cache stores derived metrics and display names, not raw events. Its
+key includes the absolute directory and four file sizes/modification times.
+`Load season` explicitly clears it. Copy-on-read isolates nested records; UI
+helpers never mutate loaded results. Every control rerun uses this snapshot,
+then performs only filtering/presentation and the existing tiny-cohort ranking.
+There is no disk cache, external service or automatic data download. See
+[local UI](ui.md) for startup, limitations and actual smoke measurements.
+
 Participation records preserve match, team, and player IDs and distinguish
 starting, being listed on the bench, entering, and leaving as a substitute.
 Being an unused substitute is not counted as an appearance. Team affiliation is
@@ -80,8 +94,9 @@ fully validated. A subset can load without claiming complete season coverage.
 Synthetic fixtures and focused tests cover metadata/event loading, validation,
 player discrepancies, historical affiliation, participation, metric definitions,
 matched denominators, transfers, uncertainty and CLI/export modes.
-GitHub Actions runs Ruff and pytest. There are no added runtime dependencies,
-automatic downloads, team compatibility, services, or UI.
+GitHub Actions installs the optional UI extra and runs Ruff and pytest, including
+synthetic Streamlit interaction tests. Team compatibility and automatic downloads
+are absent; only the optional local Streamlit service is added.
 Third-party files remain outside Git. The 1c raw-mirror smoke loaded 519,407 events and exercised
 three match-level estimates. The 2a audit exercised all 306 matches and exported
 485 player/team metric rows; neither verifies the whole original event archive.
@@ -96,8 +111,7 @@ Ball-Winning Midfielder. The total development budget is 25–40 hours, includin
 
 Use a single Python package and a lightweight local interface in one process.
 Local files and in-memory tables should suffice for this bounded dataset.
-Choose concrete modules and the UI toolkit when implementation requires them;
-no empty layers or framework dependencies are needed now.
+Streamlit supplies the local UI; no additional service layers are needed.
 
 MVP v0.1 has no LLMs, embeddings, semantic retrieval, FastAPI, PostgreSQL,
 graph ML, authentication, or deployment. It needs no separate API service.
@@ -107,25 +121,26 @@ graph ML, authentication, or deployment. It needs no separate API service.
 Local metadata, match-sheet facts, raw-event validation, conservative match-level
 minutes, covered event metrics, explicit cohort eligibility and role fits are
 implemented, along with independent style similarity and basic replacement
-shortlists, plus combined replacement rankings with explicit priorities. Broader
-cohort validation, full exploration workflows, team fit and UI remain planned.
+shortlists, plus combined replacement rankings with explicit priorities. The local
+explorer and replacement finder are implemented (4a). Broader cohort validation
+and team fit remain planned.
 
 | Component | Intended responsibility | Status |
 | --- | --- | --- |
 | Source access and normalization | Metadata, raw-mirror event validation, and match-level minutes exist; original event-binary verification and further normalization remain pending | Partly implemented (1a–1c) |
 | Cohort and analytics | Event metrics, covered per-90 rates, configurable eligibility thresholds and explicit pair-level reviews exist; the four-player positional-proxy demo needs broader validation | Implemented API / limited demo (2a–2b) |
-| Role profiles and weights | Deep-Lying Playmaker and Ball-Winning Midfielder templates, normalized custom weights, cohort percentiles and contributions | Implemented Python API (2b); UI planned |
-| Player comparison and replacements | Independent source style/role scores plus an optional weighted replacement ranking preserving both contexts and explanations | Implemented APIs/demos (3a–3b); team fit and exploration UI remain planned |
+| Role profiles and weights | Deep-Lying Playmaker and Ball-Winning Midfielder templates, normalized custom weights, cohort percentiles and contributions | Implemented API (2b) and weight controls (4a) |
+| Player comparison and replacements | Independent source style/role scores plus an optional weighted replacement ranking preserving both contexts and explanations | Implemented APIs/demos (3a–3b) and local replacement UI (4a); team fit planned |
 | Lineup compatibility | Let scouts choose a historical team baseline, edit lineup membership and assigned roles, and inspect candidate profile balance in the selected slot | Planned |
-| Local UI and scouting search | Explore players, filter the eligible cohort, adjust weights and lineup context, and inspect comparison/replacement explanations | Planned |
+| Local UI and scouting search | Search names and historical teams, distinguish demo reviews, adjust thresholds/weights and inspect replacement explanations | Implemented local Streamlit UI (4a); lineup context planned |
 
 The implemented flow is local JSON files → original records, match-sheet
 participation facts, and optional event discrepancies → match minutes and
 covered player/team metrics → summary CLI / optional CSV or explicit cohort
 reviews and eligibility → separate role fit and style distance → optional
-priority-weighted replacement ranking / local examples. The planned extension
-adds broader source/cohort validation, team fit
-and full exploration/replacement workflows → local exploration and search.
+priority-weighted replacement ranking / local examples or cached Streamlit
+exploration and replacement search. The planned extension adds broader
+source/cohort validation and team fit.
 Scouting search is structured filtering and ranking. Semantic retrieval and an API are outside
 this MVP.
 
