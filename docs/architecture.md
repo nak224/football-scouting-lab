@@ -1,6 +1,6 @@
 # Architecture
 
-## Implemented through Milestone 4b1
+## Implemented through Milestone 4b2
 
 The project contains one Python package under `src/football_scouting_lab/`.
 `wyscout.py` loads three local JSON arrays: `matches_Germany.json`, `players.json`,
@@ -87,7 +87,10 @@ normalized scales, signed weighted coverage changes and source samples/warnings.
 It neither infers tactical slots nor modifies style, role or recruitment scores.
 The local example uses the unchanged four reviews and explicitly hypothetical
 players from different clubs. See [formulas and limitations](team-fit.md).
-Streamlit integration is deferred to 4b2; no additional dependency is introduced.
+The separate Midfield simulator tab (4b2) reuses cached metrics, existing
+eligibility/profile checks and this comparison API. It fixes the complete reviewed
+cohort before lineup/weight selection and reports exclusions. No additional
+dependency is introduced.
 
 Participation records preserve match, team, and player IDs and distinguish
 starting, being listed on the bench, entering, and leaving as a substitute.
@@ -133,8 +136,8 @@ minutes, covered event metrics, explicit cohort eligibility and role fits are
 implemented, along with independent style similarity and basic replacement
 shortlists, plus combined replacement rankings with explicit priorities. The local
 explorer and replacement finder are implemented (4a), with a separate hypothetical
-midfield-trio comparison API/example (4b1). Broader cohort validation and trio UI
-integration remain planned.
+midfield-trio comparison API/example (4b1) and simulator UI (4b2). Broader cohort
+validation remains planned.
 
 | Component | Intended responsibility | Status |
 | --- | --- | --- |
@@ -142,8 +145,8 @@ integration remain planned.
 | Cohort and analytics | Event metrics, covered per-90 rates, configurable eligibility thresholds and explicit pair-level reviews exist; the four-player positional-proxy demo needs broader validation | Implemented API / limited demo (2a–2b) |
 | Role profiles and weights | Deep-Lying Playmaker and Ball-Winning Midfielder templates, normalized custom weights, cohort percentiles and contributions | Implemented API (2b) and weight controls (4a) |
 | Player comparison and replacements | Independent source style/role scores plus an optional weighted replacement ranking preserving both contexts and explanations | Implemented APIs/demos (3a–3b) and local replacement UI (4a); trio comparison stays separate |
-| Lineup compatibility | User-selected hypothetical 4-3-3 midfield trio; compare passing/defending feature coverage before/after a replacement against fixed scales | Standalone API/example implemented (4b1); Streamlit integration deferred to 4b2 |
-| Local UI and scouting search | Search names and historical teams, distinguish demo reviews, adjust thresholds/weights and inspect replacement explanations | Implemented local Streamlit UI (4a); trio integration deferred to 4b2 |
+| Lineup compatibility | User-selected hypothetical 4-3-3 midfield trio; compare passing/defending feature coverage before/after a replacement against fixed scales | Standalone API/example (4b1) and separate simulator tab (4b2) implemented |
+| Local UI and scouting search | Search names and historical teams, distinguish demo reviews, adjust thresholds/weights and inspect replacement explanations | Implemented local Streamlit UI (4a, 4b2) |
 
 The implemented flow is local JSON files → original records, match-sheet
 participation facts, and optional event discrepancies → match minutes and
@@ -151,7 +154,7 @@ covered player/team metrics → summary CLI / optional CSV or explicit cohort
 reviews and eligibility → separate role fit and style distance → optional
 priority-weighted replacement ranking / local examples or cached Streamlit
 exploration and replacement search. The planned extension adds broader
-source/cohort validation and trio UI integration. Covered metrics also feed the
+source/cohort validation. Covered metrics also feed the
 independent fixed-cohort midfield comparison; it never enters recruitment scoring.
 Scouting search is structured filtering and ranking. Semantic retrieval and an API are outside
 this MVP.

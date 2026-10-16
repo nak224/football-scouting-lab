@@ -1,8 +1,9 @@
-# Local scouting interface — Milestone 4a
+# Local scouting interface — Milestones 4a and 4b2
 
 The optional Streamlit app is a local portfolio demonstration for historical
-Bundesliga recruitment analysis. It uses the existing metrics, role, similarity
-and recruitment APIs. No additional scores or player-position reviews are added.
+Bundesliga recruitment analysis. It uses the existing metrics, role, similarity,
+recruitment and midfield-comparison APIs. No scoring algorithm or player-position
+review is added by the UI.
 
 ## Install and start
 
@@ -60,6 +61,52 @@ Scores and explanations come directly from `rank_replacements`; see
 [recruitment](recruitment.md), [roles](roles.md) and [similarity](similarity.md).
 No frontend scoring algorithm or normalization is introduced.
 
+## Midfield simulator workflow (4b2)
+
+Open the third tab, **Midfield simulator**, after loading the same local files.
+It reuses the cached `ScoutingData` and calls `compare_midfield()` directly.
+
+1. The documented default trio is **Thiago / Bayern, Weigl / Dortmund and
+   Keita / Leipzig**. **Vidal / Bayern** replaces **slot 2**. Names and original
+   player/team IDs are shown. This is a **hypothetical 4-3-3 midfield**, not an
+   observed historical XI; players from different clubs are not assumed to have
+   played together. No tactical positions are inferred.
+2. Choose three distinct reviewed players, a replacement slot 0/1/2 and a
+   candidate outside the baseline. With four eligible demo players, the candidate
+   is the remaining player. Moving the candidate into a baseline slot updates
+   the available replacement. Duplicate/stale selections are repaired with a note.
+3. Adjust the four **Midfield profile weights**. They are relative, nonnegative
+   weights normalized by the backend. All-zero weights show a configuration
+   warning. Read the BEFORE/AFTER lineups, removed/added labels and feature table:
+   coverage before/after, change, raw trio means and weighted contribution.
+4. **Signed weighted coverage change** describes statistical representation;
+   it is not a performance prediction, chemistry measure or team-fit rating.
+   Coverage is the strongest individual normalized feature, and the signed
+   summary sums `100 × normalized weight × coverage change`. Raw means average
+   individuals; average completion is not pooled team pass completion. See
+   [the unchanged backend formula and limits](team-fit.md).
+5. Inspect **Simulator normalization, samples and warnings** for the fixed cohort
+   IDs, feature ranges, normalized weights, rated minutes, appearance coverage and
+   original source warnings. Constant features carry explicit warnings.
+
+The simulator reuses `EligibilityThresholds` and defaults of **600 rated minutes /
+60% appearance coverage**, with its own controls. Before constructing the fixed
+cohort, it excludes unreviewed, ineligible or incomplete rows using the existing
+eligibility and backend profile checks. **Simulator eligibility and exclusions**
+reports reviewed entries absent from local data and unavailable measurements.
+Fewer than four distinct complete eligible players leaves a clear unavailable
+state; no names or metrics are fabricated. All four features are required even
+at zero weight.
+
+For a given data snapshot and threshold configuration, the entire eligible,
+complete reviewed cohort supplies the scales for **both** lineups. Lineup,
+replacement-slot, candidate and weight changes never narrow that cohort or
+reprocess season events. Changing thresholds can change eligibility and scales,
+so inspect the reference context again. Changing source files resets player
+selections and uses the updated cache entry; invalid/missing files hide results.
+The original Player explorer and Replacement finder settings/behavior are unchanged,
+and simulator coverage never enters a recruitment score.
+
 ## Cache and interpretation limits
 
 `st.cache_data(max_entries=1)` caches derived season metrics and display names,
@@ -68,7 +115,8 @@ Raw events are released after calculation and are not retained in the cache.
 Streamlit serializes the snapshot and returns independent copies, including nested
 mappings. Presentation helpers build fresh rows; the app treats all loaded records
 as read-only. Control changes reuse this snapshot and only rerun presentation and
-the existing small-cohort ranking. Normal file changes invalidate the entry;
+the existing small-cohort ranking/comparison APIs. Normal file changes invalidate
+the entry;
 **Load season** forces a refresh even if size/timestamps were preserved. There is
 no disk cache or cross-startup persistence.
 
@@ -123,6 +171,25 @@ startup check succeeded outside that restriction. HTTP checks establish server
 startup; AppTest establishes functional rendering and interactions. No manual
 browser visual review or deployment is claimed. The test server was stopped.
 
+## 4b2 verification — 2026-10-16
+
+No real local Wyscout files were available. The earlier external `/tmp` sample
+is absent, and searches of accessible project/local paths found only synthetic
+fixtures. The 4a real-data smoke above remains a historical result; it does not
+establish real-data verification of the simulator. No source data was downloaded
+or reconstructed from earlier outputs.
+
+Synthetic AppTest checks and a separate UI smoke rendered all three tabs with
+**14 fictional matches / 161 fictional events**, whose player IDs intentionally
+match the documented defaults. The fictional default coverage change was
+**+25.00 index points**; no Bundesliga value is implied. They verified
+the default trio/swap, changed slots and candidates, duplicate-selection repair,
+weight effects, fixed feature ranges across swaps, cohort exclusions, constant
+features, empty/invalid states and source-change resets. Instrumentation confirmed
+**one season metric calculation** across lineup, slot, weight and threshold changes.
+The original UI and backend tests remain intact. These tests establish functional
+rendering/interactions; no manual browser visual review is claimed.
+
 ## Checks
 
 ```sh
@@ -135,6 +202,7 @@ python -m pytest
 CI installs the UI extra and runs synthetic presentation and built-in Streamlit
 AppTest tests alongside all backend tests. Coverage includes search/filtering,
 role/priority/weight/threshold changes, missing scores/files, invalid JSON,
-empty results, cache reuse/invalidation/forced reload and independent cached copies.
-Without the UI extra, the Streamlit test module skips; backend and pure presentation
+empty results, cache reuse/invalidation/forced reload, independent cached copies
+and the simulator scenarios above.
+Without the UI extra, the Streamlit test modules skip; backend and pure presentation
 tests still run. Test reviews and football records are explicitly fictional.
