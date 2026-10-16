@@ -13,6 +13,7 @@ from football_scouting_lab.roles import (
     normalize_weights,
 )
 from football_scouting_lab.similarity import STYLE_METRICS
+from football_scouting_lab.team_fit import PROFILE_METRICS, compare_midfield
 
 ROLE_NAMES = {
     "deep_lying_playmaker": "Deep-Lying Playmaker",
@@ -351,6 +352,235 @@ def replacement_finder(data):
     explain_result(data, result)
 
 
+def midfield_select(data, label, key, options, preferred):
+    """Repair stale/duplicate selections before Streamlit renders a changed pool."""
+    if key in st.session_state and st.session_state[key] not in options:
+        st.session_state.pop(key)
+        st.caption(f"{label} selection updated to match the available players.")
+    return st.selectbox(
+        label,
+        options,
+        index=options.index(preferred) if preferred in options else 0,
+        format_func=data.label,
+        key=key,
+    )
+
+
+def midfield_result(data, result):
+    st.metric(
+        "Signed weighted coverage change",
+        f"{result.weighted_coverage_change:+.2f} points",
+    )
+    st.caption(
+        "Descriptive profile representation only. Positive means increased weighted coverage; "
+        "opposing feature changes can cancel. This is not a team-performance prediction or rating."
+    )
+    before, after = st.columns(2)
+    for column, title, lineup, change in (
+        (before, "BEFORE", result.baseline_lineup, "Removed"),
+        (after, "AFTER", result.updated_lineup, "Added"),
+    ):
+        with column:
+            st.markdown(f"**{title} · Hypothetical 4-3-3 midfield**")
+            table(
+                [
+                    {
+                        "Slot": slot,
+                        "Player / historical team": data.label(key),
+                        "Change": change
+                        if slot == result.replacement_slot
+                        else "Retained",
+                    }
+                    for slot, key in enumerate(lineup)
+                ]
+            )
+    st.markdown(
+        f"**Removed:** {data.label(result.replaced_id)}  \n"
+        f"**Added:** {data.label(result.candidate_id)}"
+    )
+    feature_rows = ui_data.midfield_feature_rows(result)
+    st.dataframe(
+        feature_rows,
+        hide_index=True,
+        width="stretch",
+        column_config={
+            name: st.column_config.NumberColumn(format="%.3f")
+            for name in feature_rows[0]
+            if name != "Feature"
+        },
+    )
+    st.caption(
+        "Coverage is the strongest individual feature representation on the fixed cohort's 0–1 scale. "
+        "Raw means average the three individuals; completion is not pooled team pass completion. "
+        "Weighted contribution = 100 × normalized weight × coverage change."
+    )
+    for warning in result.warnings:
+        st.warning(warning)
+    with st.expander("Simulator normalization, samples and warnings"):
+        st.write(
+            "Fixed comparison cohort IDs",
+            [row.player_team_id for row in result.comparison_cohort],
+        )
+        table(
+            [
+                {
+                    "Feature": ui_data.METRIC_LABELS[metric],
+                    "Minimum": bounds[0],
+                    "Maximum": bounds[1],
+                    "Normalized weight": result.weights[metric],
+                }
+                for metric, bounds in result.feature_ranges.items()
+            ]
+        )
+        table(
+            [
+                {
+                    "Player / historical team": data.label(row.player_team_id),
+                    "Rated minutes": row.player.rated_minutes,
+                    "Rated matches": row.rated_matches,
+                    "Recorded appearances": row.recorded_appearances,
+                    "Appearance coverage %": 100 * row.appearance_coverage,
+                    "Unrecorded event matches": row.unrecorded_event_matches,
+                    "Source warnings": "; ".join(
+                        sorted(
+                            {
+                                note
+                                for match in row.player.matches
+                                for note in match.warnings
+                            }
+                        )
+                    ),
+                }
+                for row in result.comparison_cohort
+            ]
+        )
+        for limitation in result.limitations:
+            st.write(limitation)
+
+
+def midfield_simulator(data, source_key):
+    st.subheader("Midfield simulator")
+    st.markdown(
+        "**Hypothetical 4-3-3 midfield**, not an observed historical XI. Players from different clubs "
+        "are not assumed to have played together. Only the four reviewed demo entries are considered."
+    )
+    selection_keys = [
+        *(f"midfield_slot_{slot}" for slot in range(3)),
+        "midfield_candidate",
+    ]
+    if st.session_state.get("midfield_source") != source_key:
+        for key in selection_keys:
+            st.session_state.pop(key, None)
+        if "midfield_source" in st.session_state:
+            st.caption(
+                "Local data changed; simulator player selections have been reset."
+            )
+        st.session_state["midfield_source"] = source_key
+    first, second = st.columns(2)
+    minimum = first.number_input(
+        "Simulator minimum rated minutes",
+        min_value=0.0,
+        value=600.0,
+        step=100.0,
+        key="midfield_min_minutes",
+    )
+    coverage = second.slider(
+        "Simulator minimum appearance coverage %",
+        0,
+        100,
+        60,
+        key="midfield_min_coverage",
+    )
+    st.caption(
+        "The same eligibility rules and defaults as Replacement finder apply here, with separate settings. "
+        "Threshold changes can change the fixed cohort; lineup and weight changes cannot."
+    )
+    try:
+        cohort, exclusions = ui_data.midfield_cohort(
+            data, EligibilityThresholds(minimum, coverage / 100)
+        )
+    except ValueError as error:
+        st.warning(f"Check simulator eligibility settings: {error}")
+        return
+    with st.expander("Simulator eligibility and exclusions", expanded=bool(exclusions)):
+        st.caption(
+            f"{len(cohort)} complete reviewed player/team rows available. Unverified players are excluded."
+        )
+        if exclusions:
+            table(exclusions)
+        else:
+            st.write(
+                "All four reviewed demo entries meet these thresholds and have complete metrics."
+            )
+    options = [(row.player_id, row.team_id) for row in cohort]
+    if len({key[0] for key in options}) < 4:
+        for key in selection_keys:
+            st.session_state.pop(key, None)
+        st.warning(
+            "Midfield simulator unavailable: at least four distinct reviewed players with eligible minutes, "
+            "coverage and all four complete metrics are required. Review exclusions or lower thresholds."
+        )
+        return
+    defaults = ((3345, 2444), (224677, 2447), (289711, 2975))
+    baseline = []
+    columns = st.columns(3)
+    for slot, preferred in enumerate(defaults):
+        available = [
+            key
+            for key in options
+            if key[0] not in {selected[0] for selected in baseline}
+        ]
+        with columns[slot]:
+            baseline.append(
+                midfield_select(
+                    data,
+                    f"Baseline slot {slot}",
+                    f"midfield_slot_{slot}",
+                    available,
+                    preferred,
+                )
+            )
+    left, right = st.columns(2)
+    if st.session_state.get("midfield_replace_slot") not in (0, 1, 2):
+        st.session_state.pop("midfield_replace_slot", None)
+    replacement_slot = left.selectbox(
+        "Replacement slot", [0, 1, 2], index=2, key="midfield_replace_slot"
+    )
+    available = [
+        key for key in options if key[0] not in {selected[0] for selected in baseline}
+    ]
+    with right:
+        candidate = midfield_select(
+            data,
+            "Candidate replacement",
+            "midfield_candidate",
+            available,
+            (20475, 2444),
+        )
+    with st.expander("Midfield profile weights"):
+        st.caption(
+            "Relative nonnegative weights, normalized by the comparison API. All four measurements remain required."
+        )
+        weights = {
+            metric: st.number_input(
+                ui_data.METRIC_LABELS[metric],
+                min_value=0.0,
+                value=25.0,
+                step=5.0,
+                key=f"midfield_weight_{metric}",
+            )
+            for metric in PROFILE_METRICS
+        }
+    try:
+        result = compare_midfield(
+            cohort, baseline, replacement_slot, candidate, weights=weights
+        )
+    except ValueError as error:
+        st.warning(f"Check simulator configuration: {error}")
+        return
+    midfield_result(data, result)
+
+
 def main():
     st.set_page_config(
         page_title="Football Scouting Lab", page_icon="⚽", layout="wide"
@@ -388,11 +618,15 @@ def main():
     matches.metric("Matches", len(data.metrics.matches))
     players.metric("Player / historical team rows", len(data.metrics.players))
     events.metric("Events", f"{data.metrics.event_count:,}")
-    explorer, replacements = st.tabs(["Player explorer", "Replacement finder"])
+    explorer, replacements, midfield = st.tabs(
+        ["Player explorer", "Replacement finder", "Midfield simulator"]
+    )
     with explorer:
         player_explorer(data)
     with replacements:
         replacement_finder(data)
+    with midfield:
+        midfield_simulator(data, (root, fingerprint))
 
 
 if __name__ == "__main__":
