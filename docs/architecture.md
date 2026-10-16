@@ -1,6 +1,6 @@
 # Architecture
 
-## Implemented through Milestone 4a
+## Implemented through Milestone 4b1
 
 The project contains one Python package under `src/football_scouting_lab/`.
 `wyscout.py` loads three local JSON arrays: `matches_Germany.json`, `players.json`,
@@ -79,6 +79,16 @@ then performs only filtering/presentation and the existing tiny-cohort ranking.
 There is no disk cache, external service or automatic data download. See
 [local UI](ui.md) for startup, limitations and actual smoke measurements.
 
+`team_fit.py` adds an independent `compare_midfield` function for a hypothetical
+4-3-3 midfield trio. A caller-selected complete cohort supplies one min/max scale
+per existing passing/defending feature for both lineups. Results retain ordered
+player/team IDs, individual values, equal-player means, feature maxima on the
+normalized scales, signed weighted coverage changes and source samples/warnings.
+It neither infers tactical slots nor modifies style, role or recruitment scores.
+The local example uses the unchanged four reviews and explicitly hypothetical
+players from different clubs. See [formulas and limitations](team-fit.md).
+Streamlit integration is deferred to 4b2; no additional dependency is introduced.
+
 Participation records preserve match, team, and player IDs and distinguish
 starting, being listed on the bench, entering, and leaving as a substitute.
 Being an unused substitute is not counted as an appearance. Team affiliation is
@@ -95,8 +105,8 @@ Synthetic fixtures and focused tests cover metadata/event loading, validation,
 player discrepancies, historical affiliation, participation, metric definitions,
 matched denominators, transfers, uncertainty and CLI/export modes.
 GitHub Actions installs the optional UI extra and runs Ruff and pytest, including
-synthetic Streamlit interaction tests. Team compatibility and automatic downloads
-are absent; only the optional local Streamlit service is added.
+synthetic Streamlit interaction and standalone trio tests. Automatic downloads
+are absent; the optional local Streamlit process is the only service.
 Third-party files remain outside Git. The 1c raw-mirror smoke loaded 519,407 events and exercised
 three match-level estimates. The 2a audit exercised all 306 matches and exported
 485 player/team metric rows; neither verifies the whole original event archive.
@@ -122,17 +132,18 @@ Local metadata, match-sheet facts, raw-event validation, conservative match-leve
 minutes, covered event metrics, explicit cohort eligibility and role fits are
 implemented, along with independent style similarity and basic replacement
 shortlists, plus combined replacement rankings with explicit priorities. The local
-explorer and replacement finder are implemented (4a). Broader cohort validation
-and team fit remain planned.
+explorer and replacement finder are implemented (4a), with a separate hypothetical
+midfield-trio comparison API/example (4b1). Broader cohort validation and trio UI
+integration remain planned.
 
 | Component | Intended responsibility | Status |
 | --- | --- | --- |
 | Source access and normalization | Metadata, raw-mirror event validation, and match-level minutes exist; original event-binary verification and further normalization remain pending | Partly implemented (1a–1c) |
 | Cohort and analytics | Event metrics, covered per-90 rates, configurable eligibility thresholds and explicit pair-level reviews exist; the four-player positional-proxy demo needs broader validation | Implemented API / limited demo (2a–2b) |
 | Role profiles and weights | Deep-Lying Playmaker and Ball-Winning Midfielder templates, normalized custom weights, cohort percentiles and contributions | Implemented API (2b) and weight controls (4a) |
-| Player comparison and replacements | Independent source style/role scores plus an optional weighted replacement ranking preserving both contexts and explanations | Implemented APIs/demos (3a–3b) and local replacement UI (4a); team fit planned |
-| Lineup compatibility | Let scouts choose a historical team baseline, edit lineup membership and assigned roles, and inspect candidate profile balance in the selected slot | Planned |
-| Local UI and scouting search | Search names and historical teams, distinguish demo reviews, adjust thresholds/weights and inspect replacement explanations | Implemented local Streamlit UI (4a); lineup context planned |
+| Player comparison and replacements | Independent source style/role scores plus an optional weighted replacement ranking preserving both contexts and explanations | Implemented APIs/demos (3a–3b) and local replacement UI (4a); trio comparison stays separate |
+| Lineup compatibility | User-selected hypothetical 4-3-3 midfield trio; compare passing/defending feature coverage before/after a replacement against fixed scales | Standalone API/example implemented (4b1); Streamlit integration deferred to 4b2 |
+| Local UI and scouting search | Search names and historical teams, distinguish demo reviews, adjust thresholds/weights and inspect replacement explanations | Implemented local Streamlit UI (4a); trio integration deferred to 4b2 |
 
 The implemented flow is local JSON files → original records, match-sheet
 participation facts, and optional event discrepancies → match minutes and
@@ -140,7 +151,8 @@ covered player/team metrics → summary CLI / optional CSV or explicit cohort
 reviews and eligibility → separate role fit and style distance → optional
 priority-weighted replacement ranking / local examples or cached Streamlit
 exploration and replacement search. The planned extension adds broader
-source/cohort validation and team fit.
+source/cohort validation and trio UI integration. Covered metrics also feed the
+independent fixed-cohort midfield comparison; it never enters recruitment scoring.
 Scouting search is structured filtering and ranking. Semantic retrieval and an API are outside
 this MVP.
 
@@ -150,7 +162,7 @@ this MVP.
 | --- | --- | --- |
 | Style similarity | Does this candidate play similarly to the selected player? | Implemented: weighted absolute distance between min/max-normalized rated measurements, independent of role scoring |
 | Role fit | Does this candidate match the selected role template? | Implemented: weighted cohort-relative percentiles for Deep-Lying Playmaker or Ball-Winning Midfielder; not validated tactical ground truth |
-| Team fit | Does this candidate complement the chosen lineup in the intended slot? | Lightweight profile coverage/balance against the user-edited lineup and assigned roles |
+| Team fit | How does the selected replacement change the hypothetical trio profile? | Implemented (4b1): marginal feature coverage with fixed cohort normalization and raw trio means; no tactical-slot or synergy inference |
 
 Similar style does not establish quality, role suitability, or team compatibility.
 Replacement recommendations should show these three results alongside minutes,
@@ -159,10 +171,11 @@ opaque score. Changing the lineup affects team fit, not the candidate's underlyi
 style comparison or selected role definition. Show which weights and assumptions
 produced each result.
 
-Team fit is an interpretable compatibility heuristic, not a prediction of tactical
-chemistry or future performance. Users assign lineup slots because the inspected
-raw match sheets lack tactical slot coordinates. No tracking, contracts, wages,
-or current transfer-market information is supplied by this event dataset.
+Team fit is an interpretable coverage heuristic, not a prediction of tactical
+chemistry or future performance. Users assign hypothetical midfield slots because
+the inspected raw match sheets lack reliable tactical slot coordinates. No
+tracking, contracts, wages, or current transfer-market information is supplied
+by this event dataset.
 
 ## Data constraints and implementation gates
 
