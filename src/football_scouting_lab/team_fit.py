@@ -109,7 +109,8 @@ def normalize_profile_weights(
     }
 
 
-def _profile(player: PlayerSeasonMetrics) -> PlayerProfile:
+def prepare_player_profile(player: PlayerSeasonMetrics) -> PlayerProfile:
+    """Validate one complete rated sample without choosing a cohort or scales."""
     key = _key((player.player_id, player.team_id))
     if (
         player.rated is None
@@ -193,7 +194,8 @@ def compare_midfield(
             f"lineup/candidate absent from fixed comparison cohort: {sorted(missing)}"
         )
     profiles = tuple(
-        _profile(row) for row in sorted(players, key=lambda p: (p.player_id, p.team_id))
+        prepare_player_profile(row)
+        for row in sorted(players, key=lambda p: (p.player_id, p.team_id))
     )
     indexed = {row.player_team_id: row for row in profiles}
     updated = (
