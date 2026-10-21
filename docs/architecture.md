@@ -1,6 +1,6 @@
 # Architecture
 
-## Implemented through Milestone 5b
+## Implemented through Milestone 5c
 
 The project contains one Python package under `src/football_scouting_lab/`.
 `wyscout.py` loads three local JSON arrays: `matches_Germany.json`, `players.json`,
@@ -110,6 +110,9 @@ snapshots or scoring formulas. Review changes update eligibility, ranking and
 simulator selections without event recalculation. Fictional assignments remain
 separate. Evidence is user-supplied, not independently verified by the app; see
 [review schema and interpretation](ui.md#external-manual-reviews-5b).
+The 5c review keeps match-sheet pairs even when global player metadata is absent,
+reports that discrepancy separately and leaves no-sample entries ineligible.
+See the [release checklist](release-readiness.md) for actual verification boundaries.
 
 Participation records preserve match, team, and player IDs and distinguish
 starting, being listed on the bench, entering, and leaving as a substitute.

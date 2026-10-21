@@ -22,6 +22,9 @@ finder**, then swap a player in **Midfield simulator** and inspect feature chang
 Every demo player, club, event and result is **invented — NOT real Bundesliga
 statistics**. Scores are calculated by the existing analytics, not canned UI values.
 
+Genuine fictional-demo screenshots: [Replacement finder](docs/screenshots/fictional-replacements.png)
+and [Midfield simulator](docs/screenshots/fictional-midfield.png).
+
 This MVP demonstrates explainable metrics, configurable recruitment priorities,
 fixed-cohort comparisons, data validation and a usable local Python interface.
 Its four-player samples are small; role fits are application templates and lineup
@@ -33,17 +36,20 @@ On Windows, use `py -3.12 -m venv .venv` and `.venv\Scripts\Activate.ps1`.
 
 ## Current status
 
-**Milestone 5b: configurable external midfielder reviews.** Real-data mode accepts
-validated player/historical-team decisions with evidence and notes. Review changes
-reuse cached season metrics and update rankings/simulator eligibility without
-changing scoring formulas. Blank configuration keeps the four default reviews;
-the self-contained fictional demo remains separate. Unknown/inconsistent fictional
-version markers now fail explicitly. No new real-player reviews are bundled.
+**Milestone 5c: v0.1 release review.** The complete synthetic workflow passes on
+Python **3.12.14 and 3.13.5**: **476 tests per version**, with no failures or skips.
+The clean quick start and an actual Chromium visual/workflow review succeeded.
+Scoped fixes preserve legitimate match-sheet pairs whose player metadata is
+missing, synchronize browser controls after source resets, and keep shortlist
+minutes/coverage beside scores. No scoring algorithm, dependency or reviewed
+real-player cohort was added.
 
 Real Wyscout loading remains available under **Use local Wyscout files**. No
-real local dataset was accessible for a new smoke in 5b. Earlier real
+real local dataset was accessible for a new smoke in 5c. Earlier real
 results below are historical audits, not new validation. See [actual checks and
-limitations](docs/ui.md#milestone-5b-verification--2026-10-21).
+limitations](docs/release-readiness.md). The fictional portfolio demonstration is
+reviewable; real-data end-to-end validation and broader football validity remain
+outstanding. No GitHub release has been created.
 
 The [2a metrics](docs/metrics.md) retain separate observed and matched per-90
 samples. The raw-mirror audit found usable durations in **267/306 matches** and
@@ -52,9 +58,9 @@ The conservative estimator is unchanged. Broader cohort validation remains
 planned. Tests use synthetic data; real examples and source limits are documented.
 
 The backend has no runtime dependencies; Streamlit is an optional `ui` extra.
-There are no third-party datasets in Git. Figshare item
-metadata now confirms CC BY 4.0, and the small mirror metadata files match its
-published checksums. The original event binary redirects to a blocked S3 host;
+There are no third-party datasets in Git. Earlier Figshare item
+metadata checks confirmed CC BY 4.0, and the small mirror metadata files matched
+published checksums. The original event binary redirected to a blocked S3 host;
 the event smoke is **mirror-derived**, not verification of the whole original
 event archive. Only the German member was downloaded via byte ranges. See
 [data sources](docs/data-sources.md) for actual findings and checksum boundaries.
@@ -160,7 +166,9 @@ not configuration for the built-in fictional demo:
 ```
 
 Use actual original IDs and independently reviewed evidence for your own local
-data. Each pair must exist in historical match sheets and player/team metadata;
+data. Each pair must exist in historical match sheets with a known team;
+missing global player metadata is flagged separately rather than invalidating
+match-sheet evidence. A review never creates an appearance or metric sample;
 `currentTeamId` is never affiliation evidence. Status is `included` or `excluded`;
 both require nonblank evidence and note. Duplicate decisions and unknown pairs
 fail clearly. Transfer team rows need separate decisions. Keep files outside Git.
@@ -356,7 +364,8 @@ The 4b2 simulator calls this same comparison API; recruitment scores are unchang
 estimates, 2a covered player metrics, 2b eligibility/role fit and 3a style
 similarity/basic shortlists, 3b combined replacement ranking, 4a local scouting UI,
 4b1 standalone hypothetical midfield comparison, 4b2 simulator integration and
-5a fictional portfolio demo/workflow checks and 5b external review configuration are implemented.
+5a fictional portfolio demo/workflow checks, 5b external review configuration and
+5c release-quality review are implemented.
 Remaining work requires review.
 These are budget allocations, not recorded hours;
 the ranges sum to the 25–40-hour target.
@@ -368,7 +377,8 @@ the ranges sum to the 25–40-hour target.
 | 2 | Auditable metrics, minutes eligibility, two role profiles, and custom weights | 5–8 h | 2a–2b APIs and limited cohort demo implemented; production cohort and threshold calibration require review |
 | 3 | Separate similarity/fit scores, replacement recommendations, and lineup compatibility | 5–8 h | 3a–3b style similarity and adjustable combined replacement ranking implemented; hypothetical trio API implemented in 4b1 with separate 4b2 UI |
 | 4 | Lightweight local player exploration and structured scouting search UI | 4–7 h | 4a explorer/replacement finder plus 4b2 midfield simulator implemented; unchanged four-player demo |
-| 5 | End-to-end checks, explanations, and portfolio documentation | 2–4 h | 5a fictional demo and 5b external cohort configuration implemented; real-data smoke unavailable locally |
+| 5 | End-to-end checks, explanations, and portfolio documentation | 2–4 h | 5a–5c demo, external reviews and final validation implemented; real-data smoke remains unavailable locally |
 
 See [architecture](docs/architecture.md) for the planned design and score
-boundaries. Milestone 5b stops here; further implementation requires review.
+boundaries and the [v0.1 readiness checklist](docs/release-readiness.md) for completed,
+partially verified and blocked checks. Milestone 5c stops here; further work requires review.
