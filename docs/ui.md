@@ -1,9 +1,10 @@
-# Local scouting interface — Milestones 4a and 4b2
+# Local scouting interface — through Milestone 5a
 
 The optional Streamlit app is a local portfolio demonstration for historical
 Bundesliga recruitment analysis. It uses the existing metrics, role, similarity,
 recruitment and midfield-comparison APIs. No scoring algorithm or player-position
-review is added by the UI.
+review of real players is added by the UI. The separate fictional fixture assigns
+four invented midfielders solely to exercise the same workflows.
 
 ## Install and start
 
@@ -19,7 +20,53 @@ The checked-in configuration binds to `127.0.0.1` and disables usage telemetry.
 Keep this as a local application. Stop it with Ctrl+C. For headless startup,
 append `--server.headless true`. No database, API server or deployment is required.
 
-Supply your own extracted files together in an external directory:
+## Try the FICTIONAL demo
+
+Select **Load FICTIONAL demo** in the sidebar. No downloaded data, additional
+configuration or new dependency is needed. One prominent **FICTIONAL DEMO** banner
+states that players, clubs, matches, events and results are invented; names and
+clubs also carry the FICTIONAL prefix. These are **not real Bundesliga statistics**.
+
+The deterministic generator in `fictional_data.py` writes **14 miniature match
+sheets and 1,848 raw-format events** into a temporary directory. The existing
+metadata/event loaders, minute estimator and metrics functions run unchanged;
+role fit, similarity, recruitment ranking and midfield comparison use those
+computed measurements. No calculated score is hardcoded in the frontend. Temporary
+files are removed after loading; only derived data is cached, with copy-on-read.
+Fixture season/competition codes satisfy the existing loader's format contract;
+they do not establish a real competition or season. These are toy match sheets,
+not a realistic football simulation.
+
+All four invented players have distinct IDs separate from the real reviewed
+cohort and explicit fictional eligibility assignments, not FIFA evidence or
+inferred positions. The real four-player review list is unchanged. Generated
+match records carry a versioned fictional marker: manually loading those files
+still shows the fictional banner, and mixing marked/unmarked matches is rejected.
+The generator refuses to overwrite existing dataset files.
+
+Suggested tour:
+
+1. Search **Casey** in Player explorer; inspect passing/defending metrics, rated
+   minutes and coverage. Search an absent name to see the empty state.
+2. In Replacement finder, choose either role, change metric weights and the style
+   priority, and inspect the shortlist and feature explanations. Missing/invalid
+   configurations stay explicit rather than becoming zero scores.
+3. In Midfield simulator, the default is **Avery / Harbor, Casey / Ridge and
+   Drew / Forest**, with **Blair / Harbor** replacing slot 2. Change the slot or
+   move Blair into the baseline; the remaining player becomes the candidate.
+   Inspect before/after coverage, raw means, weights and source samples.
+4. Try all-zero profile weights or excessive minimum minutes to see guarded
+   states. Select **Load FICTIONAL demo** again to reset analysis controls.
+
+All results in this mode are fictional. Switching between demo and local files
+resets analysis controls and keeps each source's eligibility assignments separate.
+Routine four-player sample notes use captions instead of repeated warning banners;
+missing data, invalid controls and meaningful backend warnings remain visible.
+
+## Optional local Wyscout files
+
+Open **Use local Wyscout files** in the sidebar. Supply your own extracted files
+together in an external directory:
 
 ```text
 /absolute/path/to/wyscout/
@@ -29,8 +76,8 @@ Supply your own extracted files together in an external directory:
 └── events_Germany.json
 ```
 
-Enter that directory in the sidebar and click **Load season**. All four files
-are required for the UI; the existing metadata-only CLI remains available.
+Enter that directory and click **Load season**. All four files are required for
+this local-data mode; the existing metadata-only CLI remains available.
 The app never downloads/extracts datasets. Follow the source/license and
 attribution guidance in [data sources](data-sources.md); source data stays outside
 Git. A local subset is accepted without implying full-season completeness.
@@ -39,12 +86,13 @@ are shown, including after replacing a previously loaded dataset.
 
 ## Example workflow
 
-1. In **Player explorer**, search `Thiago`, filter a historical team, or choose
-   **Reviewed demo only**. Tables initially sort by rated minutes; click column
+1. In **Player explorer**, search `Casey` in fictional mode or `Thiago` in local
+   Wyscout mode, filter a club, or select the cohort checkbox. Tables initially
+   sort by rated minutes; click column
    headers to sort. Each player/team row retains original IDs, rated-match and
    appearance counts, minutes, coverage and existing passing/defensive metrics.
-2. In **Replacement finder**, choose a reviewed, eligible reference such as Weigl
-   `(224677, 2447)` and Deep-Lying Playmaker or Ball-Winning Midfielder.
+2. In **Replacement finder**, choose an eligible reference such as fictional
+   Casey or local-data Weigl `(224677, 2447)` and Deep-Lying Playmaker or Ball-Winning Midfielder.
 3. Adjust minimum rated minutes (default 600), appearance coverage (60%), shortlist
    length (3), and style priority (0.5). Open **Metric weights** for independent,
    nonnegative relative weights. At least one weight per component must be positive;
@@ -66,11 +114,12 @@ No frontend scoring algorithm or normalization is introduced.
 Open the third tab, **Midfield simulator**, after loading the same local files.
 It reuses the cached `ScoutingData` and calls `compare_midfield()` directly.
 
-1. The documented default trio is **Thiago / Bayern, Weigl / Dortmund and
+1. In local Wyscout mode, the documented default trio is **Thiago / Bayern, Weigl / Dortmund and
    Keita / Leipzig**. **Vidal / Bayern** replaces **slot 2**. Names and original
    player/team IDs are shown. This is a **hypothetical 4-3-3 midfield**, not an
    observed historical XI; players from different clubs are not assumed to have
-   played together. No tactical positions are inferred.
+   played together. Fictional-mode defaults are listed above. No tactical positions
+   are inferred.
 2. Choose three distinct reviewed players, a replacement slot 0/1/2 and a
    candidate outside the baseline. With four eligible demo players, the candidate
    is the remaining player. Moving the candidate into a baseline slot updates
@@ -118,9 +167,11 @@ as read-only. Control changes reuse this snapshot and only rerun presentation an
 the existing small-cohort ranking/comparison APIs. Normal file changes invalidate
 the entry;
 **Load season** forces a refresh even if size/timestamps were preserved. There is
-no disk cache or cross-startup persistence.
+no disk cache or cross-startup persistence. The fictional generator has a separate
+version-keyed cache; lineup/weight changes reuse its calculated season metrics.
 
-Only **four** players have existing demonstration position reviews. They are
+In local Wyscout mode, only **four** players have existing demonstration position
+reviews. They are
 secondary positional proxies, not exhaustive or verified match-position ground
 truth. All other explored players remain unverified and are excluded from role
 and replacement ranking. A reference has at most three replacement players before
@@ -189,6 +240,26 @@ features, empty/invalid states and source-change resets. Instrumentation confirm
 **one season metric calculation** across lineup, slot, weight and threshold changes.
 The original UI and backend tests remain intact. These tests establish functional
 rendering/interactions; no manual browser visual review is claimed.
+
+## Milestone 5a verification — 2026-10-21
+
+The complete fictional workflow passed built-in Streamlit AppTest checks: load,
+name search, role/weight changes, replacement shortlist and feature explanations,
+lineup/candidate swaps, invalid/empty states, recovery and source switching.
+Instrumentation recorded **one season metric calculation** across ordinary widget
+changes. Changing raw fictional pass outcomes changes calculated metrics, proving
+the results come from source records. Generation is deterministic, the real
+review list is unchanged, and existing files are protected from overwrite.
+
+The documented headless launch started successfully on the loopback interface.
+`/_stcore/health` returned HTTP 200 `ok`, and `/` returned HTTP 200 HTML. The smoke
+server was stopped. AppTest covers functional rendering/interactions; no manual
+browser visual review or screenshots are claimed.
+
+**Real Bundesliga simulator smoke remains unverified in 5a.** Accessible local
+searches found only synthetic fixtures; the earlier external `/tmp` sample was
+absent. No football data was downloaded or reconstructed from old audit outputs.
+The earlier real-data results in this guide belong to their dated milestones.
 
 ## Checks
 

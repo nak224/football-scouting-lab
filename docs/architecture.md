@@ -1,6 +1,6 @@
 # Architecture
 
-## Implemented through Milestone 4b2
+## Implemented through Milestone 5a
 
 The project contains one Python package under `src/football_scouting_lab/`.
 `wyscout.py` loads three local JSON arrays: `matches_Germany.json`, `players.json`,
@@ -91,6 +91,15 @@ The separate Midfield simulator tab (4b2) reuses cached metrics, existing
 eligibility/profile checks and this comparison API. It fixes the complete reviewed
 cohort before lineup/weight selection and reports exclusions. No additional
 dependency is introduced.
+
+`fictional_data.py` adds a deterministic, self-contained portfolio fixture (5a).
+It generates new local raw-format JSON in a temporary directory, then reuses all
+existing loaders and analytics. `ScoutingData.fictional` selects a separate set of
+four fictional eligibility assignments; real reviews and source IDs are unchanged.
+Versioned markers retain fictional labeling if those files are loaded manually,
+and mixed marked/unmarked seasons fail explicitly. The UI offers a prominent
+fictional-demo button and a separate local-file form, with independent caches and
+source-switch resets. No scoring algorithm, dependency or real cohort entry is added.
 
 Participation records preserve match, team, and player IDs and distinguish
 starting, being listed on the bench, entering, and leaving as a substitute.
