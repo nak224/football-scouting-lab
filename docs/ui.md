@@ -1,4 +1,4 @@
-# Local scouting interface — through Milestone 5b
+# Local scouting interface — through Milestone 5c
 
 The optional Streamlit app is a local portfolio demonstration for historical
 Bundesliga recruitment analysis. It uses the existing metrics, role, similarity,
@@ -118,16 +118,23 @@ verifying its football claims. Omitted pairs stay unverified; broad source posit
 labels and metrics never generate reviews. Keep your review files outside Git.
 
 Each player/team pair must exist in loaded historical match sheets (lineup, bench
-or substitutions), with both IDs in source metadata. Merely having both IDs in
-the metadata, or a matching `currentTeamId`, is insufficient. Different teams for
+or substitutions) with a known team. Missing global player metadata is a separate
+discrepancy, not proof that a match-sheet affiliation is invalid. It appears as
+**Missing from players.json** in the review table, with an ID-only name fallback.
+Merely having both IDs in the metadata, or a matching `currentTeamId`, is
+insufficient. Different teams for
 a transferred player need independent decisions. Duplicate pairs/JSON keys,
 unknown affiliations, missing files and invalid schemas fail with contextual
 errors and hide stale results. An unused bench player's review is valid but does
 not fabricate an appearance/metric sample and cannot make that player scoreable.
+This remains true when that bench player's global metadata is absent. A player
+with a genuine metric sample still needs explicit review, positive rated minutes,
+coverage and complete measurements under the unchanged eligibility rules.
 
 The source summary shows included/excluded decisions, reviewed player IDs and
 unverified metric rows. **Cohort reviews and evidence** shows every supplied
-decision, note, evidence and metric-sample availability, including exclusions.
+decision, note, evidence, player-metadata status and metric-sample availability,
+including exclusions.
 Use **Included reviews only** in Player explorer; minimum minutes/coverage and
 measurement completeness still control actual scoring eligibility. Replacement
 and simulator exclusions explain why reviewed players cannot be scored.
@@ -358,3 +365,20 @@ empty results, cache reuse/invalidation/forced reload, independent cached copies
 and the simulator scenarios above.
 Without the UI extra, the Streamlit test modules skip; backend and pure presentation
 tests still run. Test reviews and football records are explicitly fictional.
+
+## Milestone 5c final review — 2026-10-21
+
+The complete suite passes with **476 tests, no failures or skips**, separately on
+Python 3.12.14 and 3.13.5; Ruff lint and format checks also pass. A clean README
+installation started successfully and the actual Chromium workflow/visual review
+covered all three tabs, local-format synthetic files, custom reviews, source
+switching and guarded states. Genuine screenshots retain the fictional banner.
+The shortlist puts sample minutes/coverage beside the scores; horizontal scrolling
+retains further audit columns. No formulas or eligibility policy changed.
+The actual browser review found a stale search display after source resets;
+explicit widget updates now synchronize the native controls with Python state.
+Regression tests verify the reset updates sent to the frontend.
+
+**No new real-data smoke was possible.** See the
+[release-readiness checklist](release-readiness.md) for exact versions, browser
+evidence, the historical-pair correction, blocked checks and modeling/source limits.

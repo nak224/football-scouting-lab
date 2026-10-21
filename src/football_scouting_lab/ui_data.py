@@ -46,6 +46,7 @@ class ScoutingData:
     fictional: bool = False
     historical_pairs: frozenset[tuple[int, int]] = frozenset()
     custom_reviews: dict[tuple[int, int], PositionReview] | None = None
+    missing_player_ids: frozenset[int] = frozenset()
 
     def label(self, key: tuple[int, int]) -> str:
         player, team = key
@@ -93,9 +94,7 @@ def load_scouting_data(directory: str) -> ScoutingData:
     events = load_events(Path(directory), metadata)
     metrics = calculate_metrics(metadata, events)
     historical_pairs = frozenset(
-        (row.player_id, row.team_id)
-        for row in metadata.participation
-        if row.player_id in metadata.players and row.team_id in metadata.teams
+        (row.player_id, row.team_id) for row in metadata.participation
     )
     player_ids = {player_id for player_id, _ in historical_pairs} | {
         row.player_id for row in metrics.players
@@ -115,7 +114,12 @@ def load_scouting_data(directory: str) -> ScoutingData:
         for team_id, record in metadata.teams.items()
     }
     return ScoutingData(
-        metrics, names, teams, fictional=fictional, historical_pairs=historical_pairs
+        metrics,
+        names,
+        teams,
+        fictional=fictional,
+        historical_pairs=historical_pairs,
+        missing_player_ids=metadata.missing_player_ids,
     )
 
 
@@ -165,6 +169,9 @@ def review_rows(data: ScoutingData) -> list[dict]:
             "Decision": review.status,
             "Evidence": review.evidence,
             "Review note": review.note,
+            "Player metadata": "Missing from players.json"
+            if key[0] in data.missing_player_ids
+            else "Available",
             "Metric sample": "Available"
             if key in metric_keys
             else "No player/team metric sample",
@@ -271,15 +278,15 @@ def shortlist_rows(data: ScoutingData, result: RecruitmentRanking) -> list[dict]
             {
                 "Player": data.player_names[player_id],
                 "Historical team": data.team_names.get(team_id, f"Team {team_id}"),
-                "Player ID": player_id,
-                "Team ID": team_id,
                 "Combined score": candidate.combined_score,
                 "Style similarity": candidate.style.score,
                 "Role fit": candidate.role.score,
-                "Style points": candidate.style_contribution,
-                "Role points": candidate.role_contribution,
                 "Rated minutes": eligibility.player.rated_minutes,
                 "Coverage %": 100 * eligibility.appearance_coverage,
+                "Player ID": player_id,
+                "Team ID": team_id,
+                "Style points": candidate.style_contribution,
+                "Role points": candidate.role_contribution,
                 "Rated matches": eligibility.rated_matches,
                 "Recorded appearances": eligibility.recorded_appearances,
             }
@@ -320,7 +327,12 @@ def midfield_cohort(
         exclusions.append(
             {
                 "Player / historical team": f"Unavailable review entry {key[0]}/{key[1]}",
-                "Exclusion reason": "player/team row absent from local metrics",
+                "Exclusion reason": "player/team row absent from local metrics"
+                + (
+                    "; player ID missing from players.json"
+                    if key[0] in data.missing_player_ids
+                    else ""
+                ),
             }
         )
     return tuple(cohort), exclusions

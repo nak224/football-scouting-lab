@@ -141,3 +141,28 @@ def test_missing_local_files_hide_demo_results_until_demo_is_reloaded(tmp_path):
     assert len(app.tabs) == 3
     assert not app.error
     assert not app.exception
+
+
+def test_source_reset_sends_defaults_to_browser_widgets():
+    app = demo_app()
+    app.text_input(key="player_search").set_value("Casey").run()
+    app.slider(key="style_priority").set_value(1.0).run()
+    app.number_input(key="min_minutes").set_value(1000.0).run()
+    app.number_input(key="style_weight_pass_attempts_per90").set_value(75.0).run()
+    app.button(key="load_demo").click().run()
+    # AppTest reads server state even when the browser receives no reset delta.
+    # set_value must be true to replace the previous native widget value.
+    for widget in (
+        app.text_input(key="player_search"),
+        app.slider(key="style_priority"),
+        app.number_input(key="min_minutes"),
+        app.number_input(key="style_weight_pass_attempts_per90"),
+        app.selectbox(key="reference"),
+        app.selectbox(key="midfield_slot_0"),
+    ):
+        assert widget.proto.set_value
+    assert app.text_input(key="player_search").value == ""
+    assert app.slider(key="style_priority").value == 0.5
+    assert app.number_input(key="min_minutes").value == 600.0
+    assert app.number_input(key="style_weight_pass_attempts_per90").value == 25.0
+    assert not app.exception
