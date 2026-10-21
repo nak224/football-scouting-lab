@@ -37,22 +37,34 @@ def load_demo_cached(version):
 
 def activate_source(mode):
     """Give each source a clean set of analysis controls, without mixing data."""
-    controls = {
-        "player_search",
-        "reference",
-        "explain_candidate",
-        "role",
-        "min_minutes",
-        "min_coverage",
-        "style_priority",
-        "shortlist_length",
-        "cohort_only",
+    defaults = {
+        "player_search": "",
+        "team_filter": None,
+        "role": "deep_lying_playmaker",
+        "min_minutes": 600.0,
+        "min_coverage": 60,
+        "style_priority": 0.5,
+        "shortlist_length": 3,
+        "cohort_only": False,
+        "midfield_min_minutes": 600.0,
+        "midfield_min_coverage": 60,
+        "midfield_replace_slot": 2,
     }
     for key in list(st.session_state):
-        if key in controls or key.startswith(
+        if key in {"reference", "explain_candidate"} or key.startswith(
             ("style_weight_", "role_weight_", "midfield_")
         ):
             st.session_state.pop(key)
+    # Deleting a widget key resets Python state but can leave the browser's
+    # native control unchanged. Explicit writes send the frontend a reset delta.
+    st.session_state.update(defaults)
+    for metric in STYLE_METRICS:
+        st.session_state[f"style_weight_{metric}"] = 25.0
+    for role, weights in ROLE_TEMPLATES.items():
+        for metric, weight in weights.items():
+            st.session_state[f"role_weight_{role}_{metric}"] = 100.0 * weight
+    for metric in PROFILE_METRICS:
+        st.session_state[f"midfield_weight_{metric}"] = 25.0
     st.session_state["data_mode"] = mode
 
 
@@ -75,9 +87,12 @@ def player_explorer(data):
         search.text_input("Search player name", key="player_search").strip().casefold()
     )
     teams = sorted({row.team_id for row in data.metrics.players})
+    if st.session_state.get("team_filter") not in (None, *teams):
+        st.session_state["team_filter"] = None
     team = team_filter.selectbox(
         "Historical team",
         [None, *teams],
+        key="team_filter",
         format_func=lambda key: (
             "All teams" if key is None else data.team_names.get(key, str(key))
         ),
@@ -197,7 +212,7 @@ def explain_result(data, result):
         table(ui_data.shortlist_rows(data, result))
         options = [row.candidate_id for row in result.shortlist]
         if st.session_state.get("explain_candidate") not in options:
-            st.session_state.pop("explain_candidate", None)
+            st.session_state["explain_candidate"] = options[0]
         selected = st.selectbox(
             "Explain candidate",
             options,
@@ -362,10 +377,10 @@ def replacement_finder(data):
                 ]
             )
             return
-        if st.session_state.get("reference") not in options:
-            st.session_state.pop("reference", None)
         preferred = FICTIONAL_BASELINE[1] if data.fictional else (224677, 2447)
         default = options.index(preferred) if preferred in options else 0
+        if st.session_state.get("reference") not in options:
+            st.session_state["reference"] = options[default]
         reference = st.selectbox(
             "Reference player / historical team",
             options,
@@ -392,9 +407,10 @@ def replacement_finder(data):
 
 def midfield_select(data, label, key, options, preferred):
     """Repair stale/duplicate selections before Streamlit renders a changed pool."""
-    if key in st.session_state and st.session_state[key] not in options:
-        st.session_state.pop(key)
-        st.caption(f"{label} selection updated to match the available players.")
+    if st.session_state.get(key) not in options:
+        if key in st.session_state:
+            st.caption(f"{label} selection updated to match the available players.")
+        st.session_state[key] = preferred if preferred in options else options[0]
     return st.selectbox(
         label,
         options,
@@ -587,7 +603,7 @@ def midfield_simulator(data, source_key):
             )
     left, right = st.columns(2)
     if st.session_state.get("midfield_replace_slot") not in (0, 1, 2):
-        st.session_state.pop("midfield_replace_slot", None)
+        st.session_state["midfield_replace_slot"] = 2
     replacement_slot = left.selectbox(
         "Replacement slot", [0, 1, 2], index=2, key="midfield_replace_slot"
     )

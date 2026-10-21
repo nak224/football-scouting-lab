@@ -63,6 +63,17 @@ def test_rank_controls_explanations_and_cache_reuse(
     app.number_input(key="min_minutes").set_value(0.0).run()
     assert app.selectbox(key="reference").value == (101, 201)
     combined = app.dataframe[1].value.iloc[0]
+    # Keep scores and their sample context visible before audit IDs/contributions
+    # in the horizontally scrolling shortlist at ordinary desktop widths.
+    assert list(app.dataframe[1].value.columns[:7]) == [
+        "Player",
+        "Historical team",
+        "Combined score",
+        "Style similarity",
+        "Role fit",
+        "Rated minutes",
+        "Coverage %",
+    ]
     assert combined["Player ID"] == 104
     assert combined["Combined score"] == pytest.approx(
         0.5 * combined["Style similarity"] + 0.5 * combined["Role fit"]
