@@ -18,7 +18,7 @@ CANDIDATE = (20475, 2444)
 def load_app(directory):
     app = AppTest.from_file(str(APP), default_timeout=30).run()
     app.text_input(key="data_dir").set_value(str(directory))
-    app.button[0].click().run()
+    app.button(key="load_season").click().run()
     assert not app.exception
     assert not app.error
     return app
@@ -84,7 +84,7 @@ def test_defaults_lineups_explanations_and_direct_backend_call(
     assert any(
         "not an observed historical XI" in item.value for item in app.tabs[2].markdown
     )
-    assert any("tiny comparison cohort" in item.value for item in app.tabs[2].warning)
+    assert any("tiny comparison cohort" in item.value for item in app.tabs[2].caption)
     samples = frame_with(app, "Source warnings")
     assert len(samples) == 4
     assert (samples["Appearance coverage %"] == 100).all()

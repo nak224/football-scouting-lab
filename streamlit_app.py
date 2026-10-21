@@ -5,6 +5,9 @@ from dataclasses import asdict
 import streamlit as st
 
 from football_scouting_lab import ui_data
+from football_scouting_lab.fictional_data import BASELINE as FICTIONAL_BASELINE
+from football_scouting_lab.fictional_data import CANDIDATE as FICTIONAL_CANDIDATE
+from football_scouting_lab.fictional_data import VERSION as FICTIONAL_VERSION
 from football_scouting_lab.recruitment import rank_replacements
 from football_scouting_lab.roles import (
     ROLE_TEMPLATES,
@@ -25,6 +28,31 @@ ROLE_NAMES = {
 def load_cached(directory, fingerprint):
     # fingerprint is deliberately hashed: file changes invalidate the derived snapshot.
     return ui_data.load_scouting_data(directory)
+
+
+@st.cache_data(max_entries=1, show_spinner="Generating fictional demo…")
+def load_demo_cached(version):
+    return ui_data.load_fictional_demo()
+
+
+def activate_source(mode):
+    """Give each source a clean set of analysis controls, without mixing data."""
+    controls = {
+        "player_search",
+        "reference",
+        "explain_candidate",
+        "role",
+        "min_minutes",
+        "min_coverage",
+        "style_priority",
+        "shortlist_length",
+    }
+    for key in list(st.session_state):
+        if key in controls or key.startswith(
+            ("style_weight_", "role_weight_", "midfield_")
+        ):
+            st.session_state.pop(key)
+    st.session_state["data_mode"] = mode
 
 
 def table(rows):
@@ -53,13 +81,19 @@ def player_explorer(data):
             "All teams" if key is None else data.team_names.get(key, str(key))
         ),
     )
-    reviewed = review_filter.checkbox("Reviewed demo only")
+    reviewed = review_filter.checkbox(
+        "Fictional cohort only" if data.fictional else "Reviewed demo only"
+    )
     rows = [
         row
         for row in ui_data.explorer_rows(data)
         if query in row["Player"].casefold()
         and (team is None or row["Team ID"] == team)
-        and (not reviewed or row["Position review"] == "Reviewed demo midfielder")
+        and (
+            not reviewed
+            or row["Position review"]
+            in ("Reviewed demo midfielder", "Fictional demo midfielder")
+        )
     ]
     st.caption(
         f"{len(rows)} player/team rows · Initially sorted by rated minutes; click a column to sort. "
@@ -145,9 +179,9 @@ def explain_result(data, result):
         f"{reference.rated_matches}/{reference.recorded_appearances} appearances rated "
         f"({100 * reference.appearance_coverage:.1f}% coverage)."
     )
-    st.warning(
-        "Small demonstration sample: only four reviewed players are available, "
-        "with at most three replacements before further exclusions. Rankings are not league-wide."
+    st.caption(
+        "Four-player demonstration: at most three replacements are available, "
+        "before further exclusions. Rankings are relative to this small cohort."
     )
     st.caption(
         f"Style normalization: {len(result.style.normalization_ids)} complete player/team rows · "
@@ -327,7 +361,8 @@ def replacement_finder(data):
             return
         if st.session_state.get("reference") not in options:
             st.session_state.pop("reference", None)
-        default = options.index((224677, 2447)) if (224677, 2447) in options else 0
+        preferred = FICTIONAL_BASELINE[1] if data.fictional else (224677, 2447)
+        default = options.index(preferred) if preferred in options else 0
         reference = st.selectbox(
             "Reference player / historical team",
             options,
@@ -415,7 +450,10 @@ def midfield_result(data, result):
         "Weighted contribution = 100 × normalized weight × coverage change."
     )
     for warning in result.warnings:
-        st.warning(warning)
+        if warning.startswith("tiny comparison cohort"):
+            st.caption(warning)
+        else:
+            st.warning(warning)
     with st.expander("Simulator normalization, samples and warnings"):
         st.write(
             "Fixed comparison cohort IDs",
@@ -462,7 +500,7 @@ def midfield_simulator(data, source_key):
     st.subheader("Midfield simulator")
     st.markdown(
         "**Hypothetical 4-3-3 midfield**, not an observed historical XI. Players from different clubs "
-        "are not assumed to have played together. Only the four reviewed demo entries are considered."
+        "are not assumed to have played together. Only four demo entries are considered."
     )
     selection_keys = [
         *(f"midfield_slot_{slot}" for slot in range(3)),
@@ -510,7 +548,7 @@ def midfield_simulator(data, source_key):
             table(exclusions)
         else:
             st.write(
-                "All four reviewed demo entries meet these thresholds and have complete metrics."
+                "All four demo entries meet these thresholds and have complete metrics."
             )
     options = [(row.player_id, row.team_id) for row in cohort]
     if len({key[0] for key in options}) < 4:
@@ -521,7 +559,11 @@ def midfield_simulator(data, source_key):
             "coverage and all four complete metrics are required. Review exclusions or lower thresholds."
         )
         return
-    defaults = ((3345, 2444), (224677, 2447), (289711, 2975))
+    defaults = (
+        FICTIONAL_BASELINE
+        if data.fictional
+        else ((3345, 2444), (224677, 2447), (289711, 2975))
+    )
     baseline = []
     columns = st.columns(3)
     for slot, preferred in enumerate(defaults):
@@ -555,7 +597,7 @@ def midfield_simulator(data, source_key):
             "Candidate replacement",
             "midfield_candidate",
             available,
-            (20475, 2444),
+            FICTIONAL_CANDIDATE if data.fictional else (20475, 2444),
         )
     with st.expander("Midfield profile weights"):
         st.caption(
@@ -586,34 +628,59 @@ def main():
         page_title="Football Scouting Lab", page_icon="⚽", layout="wide"
     )
     st.title("Football Scouting Lab")
-    st.caption("Bundesliga 2017/18 · Historical recruitment analysis")
-    st.info(
-        "Limited demonstration: only four reviewed midfielders. Their CM/CDM position proxies "
-        "are not exhaustive tactical-position ground truth. Other players remain unverified."
+    st.caption(
+        "Explainable player exploration, recruitment rankings and hypothetical midfield comparison"
     )
     with st.sidebar:
-        st.header("Local season data")
+        st.header("Choose data")
+        if st.button("Load FICTIONAL demo", key="load_demo", type="primary"):
+            activate_source("fictional")
         st.caption(
-            "Supply your own four Wyscout JSON files. Nothing is downloaded or uploaded to an external service."
+            "Invented players, clubs and events. No files or downloads required."
         )
-        with st.form("data_source"):
-            directory = st.text_input("Local data directory", key="data_dir")
-            submitted = st.form_submit_button("Load season")
-        if submitted:
-            st.session_state["loaded_directory"] = directory
-            load_cached.clear()
-        st.caption("Use Load season to force a refresh after replacing source files.")
-    if "loaded_directory" not in st.session_state:
+        with st.expander("Use local Wyscout files"):
+            with st.form("data_source"):
+                directory = st.text_input("Local data directory", key="data_dir")
+                submitted = st.form_submit_button("Load season", key="load_season")
+            if submitted:
+                st.session_state["loaded_directory"] = directory
+                activate_source("local")
+                load_cached.clear()
+            st.caption(
+                "Supply the four JSON files outside Git. Load season forces a refresh."
+            )
+    mode = st.session_state.get("data_mode")
+    if mode is None:
         st.info(
-            "Enter the directory containing matches_Germany.json, players.json, teams.json and events_Germany.json, then select Load season."
+            "Select Load FICTIONAL demo in the sidebar to try all three sections without downloading data, or supply your own local Wyscout files."
         )
         return
     try:
-        root, fingerprint = ui_data.dataset_key(st.session_state["loaded_directory"])
-        data = load_cached(root, fingerprint)
+        if mode == "fictional":
+            data = load_demo_cached(FICTIONAL_VERSION)
+            source_key = ("fictional", FICTIONAL_VERSION)
+        else:
+            root, fingerprint = ui_data.dataset_key(
+                st.session_state["loaded_directory"]
+            )
+            data = load_cached(root, fingerprint)
+            source_key = (root, fingerprint)
     except (OSError, ValueError) as error:
-        st.error(f"Could not load local season: {error}")
+        st.error(
+            f"Could not load {'fictional demo' if mode == 'fictional' else 'local season'}: {error}"
+        )
         return
+    if data.fictional:
+        st.warning(
+            "FICTIONAL DEMO — All players, clubs, matches, events and results are invented. NOT real Bundesliga statistics. Four midfielders are assigned for this fixture only."
+        )
+        st.sidebar.markdown("**Active: FICTIONAL demo**")
+    else:
+        st.caption("Local Wyscout Bundesliga 2017/18 data")
+        st.info(
+            "Limited demonstration: only four reviewed midfielders. Their CM/CDM position proxies are not exhaustive tactical-position ground truth. Other players remain unverified."
+        )
+        st.sidebar.markdown("**Active: local Wyscout files**")
     matches, players, events = st.columns(3)
     matches.metric("Matches", len(data.metrics.matches))
     players.metric("Player / historical team rows", len(data.metrics.players))
@@ -626,7 +693,7 @@ def main():
     with replacements:
         replacement_finder(data)
     with midfield:
-        midfield_simulator(data, (root, fingerprint))
+        midfield_simulator(data, source_key)
 
 
 if __name__ == "__main__":
