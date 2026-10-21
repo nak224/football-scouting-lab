@@ -18,7 +18,7 @@ def load_app(directory):
     app = AppTest.from_file(str(APP), default_timeout=30).run()
     assert not app.exception
     app.text_input(key="data_dir").set_value(str(directory))
-    app.button[0].click().run()
+    app.button(key="load_season").click().run()
     assert not app.exception
     return app
 
@@ -28,7 +28,7 @@ def test_initial_and_missing_invalid_data(tmp_path):
     assert not app.exception
     assert not app.dataframe
     app.text_input(key="data_dir").set_value(str(tmp_path))
-    app.button[0].click().run()
+    app.button(key="load_season").click().run()
     assert "Missing data file" in app.error[0].value
     assert not app.exception
     assert not app.dataframe
@@ -85,7 +85,7 @@ def test_rank_controls_explanations_and_cache_reuse(
     assert any("at least one style weight" in row.value for row in app.warning)
     assert not app.exception
     assert len(calls) == 1
-    app.button[0].click().run()
+    app.button(key="load_season").click().run()
     assert len(calls) == 2  # explicit reload even when file stamps are unchanged
     path = ui_data_dir / "teams.json"
     path.write_text(path.read_text() + "\n")
@@ -121,7 +121,7 @@ def test_invalid_json_and_reload_do_not_show_stale_results(
     assert not app.error
     path = ui_data_dir / "events_Germany.json"
     path.write_text("not JSON")
-    app.button[0].click().run()
+    app.button(key="load_season").click().run()
     assert "cannot read JSON" in app.error[0].value
     assert not app.dataframe
     assert not app.exception

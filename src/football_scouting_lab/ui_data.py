@@ -3,8 +3,12 @@
 import re
 from dataclasses import dataclass
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
 from .demo_cohort import DEMO_REVIEWS
+from .fictional_data import REVIEWS as FICTIONAL_REVIEWS
+from .fictional_data import VERSION as FICTIONAL_VERSION
+from .fictional_data import write_fictional_data
 from .metrics import PlayerSeasonMetrics, SeasonMetrics, calculate_metrics
 from .recruitment import RecruitmentRanking
 from .roles import EligibilityThresholds, assess_eligibility
@@ -38,6 +42,7 @@ class ScoutingData:
     metrics: SeasonMetrics
     player_names: dict[int, str]
     team_names: dict[int, str]
+    fictional: bool = False
 
     def label(self, key: tuple[int, int]) -> str:
         player, team = key
@@ -69,6 +74,12 @@ def display_text(text: str) -> str:
 
 def load_scouting_data(directory: str) -> ScoutingData:
     metadata = load_season(Path(directory))
+    markers = [match.get("fictionalDemo") for match in metadata.matches.values()]
+    fictional = FICTIONAL_VERSION in markers
+    if fictional and not all(marker == FICTIONAL_VERSION for marker in markers):
+        raise ValueError(
+            "FICTIONAL demo matches cannot be mixed with unmarked season data"
+        )
     events = load_events(Path(directory), metadata)
     metrics = calculate_metrics(metadata, events)
     player_ids = {row.player_id for row in metrics.players}
@@ -86,13 +97,26 @@ def load_scouting_data(directory: str) -> ScoutingData:
         team_id: display_text(str(record.get("name") or f"Team {team_id}"))
         for team_id, record in metadata.teams.items()
     }
-    return ScoutingData(metrics, names, teams)
+    return ScoutingData(metrics, names, teams, fictional=fictional)
+
+
+def load_fictional_demo() -> ScoutingData:
+    """Generate temporary raw files and reuse the real loading/analytics pipeline."""
+    with TemporaryDirectory(prefix="football-scouting-fictional-") as directory:
+        write_fictional_data(directory)
+        return load_scouting_data(directory)
+
+
+def configured_reviews(data: ScoutingData):
+    return FICTIONAL_REVIEWS if data.fictional else DEMO_REVIEWS
 
 
 def present_reviews(data: ScoutingData):
-    """The four existing demonstration reviews, restricted to rows actually loaded."""
+    """Keep fictional assignments separate from the four real-data demo reviews."""
     keys = {(row.player_id, row.team_id) for row in data.metrics.players}
-    return {key: value for key, value in DEMO_REVIEWS.items() if key in keys}
+    return {
+        key: value for key, value in configured_reviews(data).items() if key in keys
+    }
 
 
 def explorer_rows(data: ScoutingData) -> list[dict]:
@@ -110,7 +134,11 @@ def explorer_rows(data: ScoutingData) -> list[dict]:
                 "Player ID": player.player_id,
                 "Team ID": player.team_id,
                 "Position review": (
-                    "Reviewed demo midfielder"
+                    (
+                        "Fictional demo midfielder"
+                        if data.fictional
+                        else "Reviewed demo midfielder"
+                    )
                     if eligibility.review.status == "included"
                     else f"{eligibility.review.status.capitalize()} position"
                 ),
@@ -222,7 +250,7 @@ def midfield_cohort(
             )
         else:
             cohort.append(candidate.player)
-    for key in sorted(DEMO_REVIEWS.keys() - reviews.keys()):
+    for key in sorted(configured_reviews(data).keys() - reviews.keys()):
         exclusions.append(
             {
                 "Player / historical team": f"Unavailable demo entry {key[0]}/{key[1]}",

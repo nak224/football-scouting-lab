@@ -5,25 +5,51 @@ targets **professional recruitment scouts** exploring historical central
 midfielders in **Wyscout Bundesliga 2017/18**. The total development target is
 **25–40 hours**, including the foundation and scope-verification milestones.
 
+## Quick start — no dataset download
+
+Requires **Python 3.12+**. Clone this repository, then from its root:
+
+```sh
+python3.12 -m venv .venv
+source .venv/bin/activate
+python -m pip install -e ".[ui]"
+python -m streamlit run streamlit_app.py
+```
+
+Select **Load FICTIONAL demo** in the sidebar. All three sections work immediately:
+search `Casey` in **Player explorer**, change a role/weights in **Replacement
+finder**, then swap a player in **Midfield simulator** and inspect feature changes.
+Every demo player, club, event and result is **invented — NOT real Bundesliga
+statistics**. Scores are calculated by the existing analytics, not canned UI values.
+
+This MVP demonstrates explainable metrics, configurable recruitment priorities,
+fixed-cohort comparisons, data validation and a usable local Python interface.
+Its four-player samples are small; role fits are application templates and lineup
+coverage is descriptive, not chemistry or future performance. Optional real-data
+mode retains the four existing positional-proxy reviews and their data-coverage
+limits. See the [UI guide](docs/ui.md) and [data sources](docs/data-sources.md).
+On Windows, use `py -3.12 -m venv .venv` and `.venv\Scripts\Activate.ps1`.
+
 ## Current status
 
-**Milestone 4b2: a third Streamlit tab for hypothetical midfield replacements.**
-The **Midfield simulator** reuses cached season metrics and the existing
-`compare_midfield()` API. Select three reviewed players, a replacement slot,
-a candidate and profile weights, then inspect BEFORE/AFTER lineups, feature
-coverage, raw means and signed weighted changes. Fixed scales, samples and
-exclusions remain visible. See the [UI workflow](docs/ui.md) and
-[comparison formula](docs/team-fit.md).
+**Milestone 5a: self-contained fictional portfolio demo and workflow validation.**
+A deterministic generator supplies four fictional players in a separate fixture;
+the existing loaders, minute estimates, metrics, role/style/recruitment APIs and
+midfield comparison compute all results. The real reviewed cohort is unchanged.
+The UI has explicit source controls, resets analysis settings when switching
+sources, and keeps one prominent fictional-data banner. Tests cover complete
+three-tab workflows, invalid/empty states, source isolation and cache reuse.
 
-Player exploration and recruitment rankings retain their behavior. The unchanged
-four-player positional-proxy cohort remains a limited demonstration, not verified
-match-position labels; the trio is hypothetical and can mix historical clubs.
+Real Wyscout loading remains available under **Use local Wyscout files**. No
+real local dataset was accessible for a new simulator smoke in 5a. Earlier real
+results below are historical audits, not new validation. See [actual checks and
+limitations](docs/ui.md#milestone-5a-verification--2026-10-21).
 
 The [2a metrics](docs/metrics.md) retain separate observed and matched per-90
 samples. The raw-mirror audit found usable durations in **267/306 matches** and
 positive minutes for **7,395/8,501 appearances**, with uneven team coverage.
-The conservative estimator is unchanged. Broader cohort validation remains planned. Tests use synthetic data; real examples
-and source limits are documented.
+The conservative estimator is unchanged. Broader cohort validation remains
+planned. Tests use synthetic data; real examples and source limits are documented.
 
 The backend has no runtime dependencies; Streamlit is an optional `ui` extra.
 There are no third-party datasets in Git. Figshare item
@@ -95,7 +121,8 @@ python -m pip install -e ".[ui]"
 python -m streamlit run streamlit_app.py
 ```
 
-Supply a directory outside Git containing **matches_Germany.json, players.json,
+For optional real-data mode, open **Use local Wyscout files** and supply a
+directory outside Git containing **matches_Germany.json, players.json,
 teams.json and events_Germany.json** in the sidebar, then select **Load season**.
 The app does not download or bundle data. It binds to the local machine and
 caches derived metrics so controls do not reprocess the raw events.
@@ -298,8 +325,8 @@ The 4b2 simulator calls this same comparison API; recruitment scores are unchang
 0a, the 0b source audit, 1a metadata, 1b events, and 1c match-level playing-time
 estimates, 2a covered player metrics, 2b eligibility/role fit and 3a style
 similarity/basic shortlists, 3b combined replacement ranking, 4a local scouting UI,
-4b1 standalone hypothetical midfield comparison and 4b2 simulator integration
-are implemented.
+4b1 standalone hypothetical midfield comparison, 4b2 simulator integration and
+5a fictional portfolio demo/workflow checks are implemented.
 Remaining work requires review.
 These are budget allocations, not recorded hours;
 the ranges sum to the 25–40-hour target.
@@ -311,7 +338,7 @@ the ranges sum to the 25–40-hour target.
 | 2 | Auditable metrics, minutes eligibility, two role profiles, and custom weights | 5–8 h | 2a–2b APIs and limited cohort demo implemented; production cohort and threshold calibration require review |
 | 3 | Separate similarity/fit scores, replacement recommendations, and lineup compatibility | 5–8 h | 3a–3b style similarity and adjustable combined replacement ranking implemented; hypothetical trio API implemented in 4b1 with separate 4b2 UI |
 | 4 | Lightweight local player exploration and structured scouting search UI | 4–7 h | 4a explorer/replacement finder plus 4b2 midfield simulator implemented; unchanged four-player demo |
-| 5 | End-to-end checks, explanations, and portfolio documentation | 2–4 h | Planned |
+| 5 | End-to-end checks, explanations, and portfolio documentation | 2–4 h | 5a fictional demo, complete workflow tests and quick-start implemented; real simulator smoke unavailable locally |
 
 See [architecture](docs/architecture.md) for the planned design and score
-boundaries. Milestone 4b2 stops here; further implementation requires review.
+boundaries. Milestone 5a stops here; further implementation requires review.
