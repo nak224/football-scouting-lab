@@ -1,6 +1,6 @@
 # Architecture
 
-## Implemented through Milestone 5a
+## Implemented through Milestone 5b
 
 The project contains one Python package under `src/football_scouting_lab/`.
 `wyscout.py` loads three local JSON arrays: `matches_Germany.json`, `players.json`,
@@ -73,7 +73,7 @@ Streamlit is an optional `ui` extra; the backend remains dependency-free.
 
 The data cache stores derived metrics and display names, not raw events. Its
 key includes the absolute directory and four file sizes/modification times.
-`Load season` explicitly clears it. Copy-on-read isolates nested records; UI
+`Force source reload` explicitly clears it on form submission. Copy-on-read isolates nested records; UI
 helpers never mutate loaded results. Every control rerun uses this snapshot,
 then performs only filtering/presentation and the existing tiny-cohort ranking.
 There is no disk cache, external service or automatic data download. See
@@ -97,9 +97,19 @@ It generates new local raw-format JSON in a temporary directory, then reuses all
 existing loaders and analytics. `ScoutingData.fictional` selects a separate set of
 four fictional eligibility assignments; real reviews and source IDs are unchanged.
 Versioned markers retain fictional labeling if those files are loaded manually,
-and mixed marked/unmarked seasons fail explicitly. The UI offers a prominent
+and mixed marked/unmarked seasons or unknown/inconsistent versions fail explicitly. The UI offers a prominent
 fictional-demo button and a separate local-file form, with independent caches and
 source-switch resets. No scoring algorithm, dependency or real cohort entry is added.
+
+`cohort_reviews.py` (5b) loads optional local manual included/excluded decisions
+with evidence and notes. `ui_data.py` validates their original player/team IDs
+against historical match-sheet pairs retained in the derived cache; no current
+club or broad position label supplies affiliation/position evidence. Reviews are
+applied after cached metrics, replacing default reviews without modifying source
+snapshots or scoring formulas. Review changes update eligibility, ranking and
+simulator selections without event recalculation. Fictional assignments remain
+separate. Evidence is user-supplied, not independently verified by the app; see
+[review schema and interpretation](ui.md#external-manual-reviews-5b).
 
 Participation records preserve match, team, and player IDs and distinguish
 starting, being listed on the bench, entering, and leaving as a substitute.
