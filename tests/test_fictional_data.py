@@ -102,3 +102,25 @@ def test_marked_fictional_and_unmarked_data_cannot_be_mixed(tmp_path):
     path.write_text(json.dumps(matches))
     with pytest.raises(ValueError, match="cannot be mixed"):
         load_scouting_data(str(root))
+
+
+@pytest.mark.parametrize("marker", ["fictional-v999", "", None, True, 1, {}, []])
+@pytest.mark.parametrize("all_matches", [True, False])
+def test_unknown_or_inconsistent_versions_never_become_real_data(
+    tmp_path, monkeypatch, marker, all_matches
+):
+    from football_scouting_lab import ui_data
+
+    root = write_fictional_data(tmp_path)
+    path = root / "matches_Germany.json"
+    matches = json.loads(path.read_text())
+    for match in matches if all_matches else matches[:1]:
+        match["fictionalDemo"] = marker
+    path.write_text(json.dumps(matches))
+
+    def unexpected_event_load(*args):
+        pytest.fail("Rejected provenance markers must be checked before loading events")
+
+    monkeypatch.setattr(ui_data, "load_events", unexpected_event_load)
+    with pytest.raises(ValueError, match="Unknown or invalid fictionalDemo version"):
+        load_scouting_data(str(root))

@@ -1,17 +1,18 @@
 """Small presentation helpers; no Streamlit dependency or scoring algorithms."""
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
+from .cohort_reviews import load_position_reviews
 from .demo_cohort import DEMO_REVIEWS
 from .fictional_data import REVIEWS as FICTIONAL_REVIEWS
 from .fictional_data import VERSION as FICTIONAL_VERSION
 from .fictional_data import write_fictional_data
 from .metrics import PlayerSeasonMetrics, SeasonMetrics, calculate_metrics
 from .recruitment import RecruitmentRanking
-from .roles import EligibilityThresholds, assess_eligibility
+from .roles import EligibilityThresholds, PositionReview, assess_eligibility
 from .similarity import compare_styles, normalize_style_weights
 from .team_fit import MidfieldComparison, prepare_player_profile
 from .wyscout import load_events, load_season
@@ -43,6 +44,8 @@ class ScoutingData:
     player_names: dict[int, str]
     team_names: dict[int, str]
     fictional: bool = False
+    historical_pairs: frozenset[tuple[int, int]] = frozenset()
+    custom_reviews: dict[tuple[int, int], PositionReview] | None = None
 
     def label(self, key: tuple[int, int]) -> str:
         player, team = key
@@ -74,15 +77,29 @@ def display_text(text: str) -> str:
 
 def load_scouting_data(directory: str) -> ScoutingData:
     metadata = load_season(Path(directory))
-    markers = [match.get("fictionalDemo") for match in metadata.matches.values()]
-    fictional = FICTIONAL_VERSION in markers
-    if fictional and not all(marker == FICTIONAL_VERSION for marker in markers):
+    marked = ["fictionalDemo" in match for match in metadata.matches.values()]
+    fictional = any(marked)
+    if fictional and not all(marked):
         raise ValueError(
             "FICTIONAL demo matches cannot be mixed with unmarked season data"
         )
+    if fictional and any(
+        match["fictionalDemo"] != FICTIONAL_VERSION
+        for match in metadata.matches.values()
+    ):
+        raise ValueError(
+            "Unknown or invalid fictionalDemo version; refusing to treat it as real data"
+        )
     events = load_events(Path(directory), metadata)
     metrics = calculate_metrics(metadata, events)
-    player_ids = {row.player_id for row in metrics.players}
+    historical_pairs = frozenset(
+        (row.player_id, row.team_id)
+        for row in metadata.participation
+        if row.player_id in metadata.players and row.team_id in metadata.teams
+    )
+    player_ids = {player_id for player_id, _ in historical_pairs} | {
+        row.player_id for row in metrics.players
+    }
     names = {}
     for player_id in player_ids:
         record = metadata.players.get(player_id, {})
@@ -97,7 +114,9 @@ def load_scouting_data(directory: str) -> ScoutingData:
         team_id: display_text(str(record.get("name") or f"Team {team_id}"))
         for team_id, record in metadata.teams.items()
     }
-    return ScoutingData(metrics, names, teams, fictional=fictional)
+    return ScoutingData(
+        metrics, names, teams, fictional=fictional, historical_pairs=historical_pairs
+    )
 
 
 def load_fictional_demo() -> ScoutingData:
@@ -107,12 +126,55 @@ def load_fictional_demo() -> ScoutingData:
         return load_scouting_data(directory)
 
 
+def apply_review_file(data: ScoutingData, path: str) -> ScoutingData:
+    """Apply small configuration AFTER cached analytics; never mutate the snapshot."""
+    if not path.strip():
+        return (
+            replace(data, custom_reviews=None)
+            if data.custom_reviews is not None
+            else data
+        )
+    if data.fictional:
+        raise ValueError("Custom real-data reviews cannot be applied to FICTIONAL data")
+    return replace(
+        data, custom_reviews=load_position_reviews(path, data.historical_pairs)
+    )
+
+
 def configured_reviews(data: ScoutingData):
-    return FICTIONAL_REVIEWS if data.fictional else DEMO_REVIEWS
+    if data.fictional:
+        return FICTIONAL_REVIEWS
+    return data.custom_reviews if data.custom_reviews is not None else DEMO_REVIEWS
+
+
+def review_key(data: ScoutingData) -> tuple:
+    """Content identity detects revised decisions/evidence even at the same path."""
+    return tuple(
+        (player, team, review.status, review.evidence, review.note)
+        for (player, team), review in sorted(configured_reviews(data).items())
+    )
+
+
+def review_rows(data: ScoutingData) -> list[dict]:
+    metric_keys = {(row.player_id, row.team_id) for row in data.metrics.players}
+    return [
+        {
+            "Player / historical team": data.label(key),
+            "Player ID": key[0],
+            "Team ID": key[1],
+            "Decision": review.status,
+            "Evidence": review.evidence,
+            "Review note": review.note,
+            "Metric sample": "Available"
+            if key in metric_keys
+            else "No player/team metric sample",
+        }
+        for key, review in sorted(configured_reviews(data).items())
+    ]
 
 
 def present_reviews(data: ScoutingData):
-    """Keep fictional assignments separate from the four real-data demo reviews."""
+    """Only metric-bearing decisions enter eligibility; absent samples stay visible."""
     keys = {(row.player_id, row.team_id) for row in data.metrics.players}
     return {
         key: value for key, value in configured_reviews(data).items() if key in keys
@@ -137,7 +199,11 @@ def explorer_rows(data: ScoutingData) -> list[dict]:
                     (
                         "Fictional demo midfielder"
                         if data.fictional
-                        else "Reviewed demo midfielder"
+                        else (
+                            "Manually included midfielder"
+                            if data.custom_reviews is not None
+                            else "Reviewed demo midfielder"
+                        )
                     )
                     if eligibility.review.status == "included"
                     else f"{eligibility.review.status.capitalize()} position"
@@ -253,7 +319,7 @@ def midfield_cohort(
     for key in sorted(configured_reviews(data).keys() - reviews.keys()):
         exclusions.append(
             {
-                "Player / historical team": f"Unavailable demo entry {key[0]}/{key[1]}",
+                "Player / historical team": f"Unavailable review entry {key[0]}/{key[1]}",
                 "Exclusion reason": "player/team row absent from local metrics",
             }
         )
