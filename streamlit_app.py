@@ -46,6 +46,7 @@ def activate_source(mode):
         "min_coverage",
         "style_priority",
         "shortlist_length",
+        "cohort_only",
     }
     for key in list(st.session_state):
         if key in controls or key.startswith(
@@ -82,18 +83,20 @@ def player_explorer(data):
         ),
     )
     reviewed = review_filter.checkbox(
-        "Fictional cohort only" if data.fictional else "Reviewed demo only"
+        "Fictional cohort only" if data.fictional else "Included reviews only",
+        key="cohort_only",
     )
+    included = {
+        key
+        for key, review in ui_data.present_reviews(data).items()
+        if review.status == "included"
+    }
     rows = [
         row
         for row in ui_data.explorer_rows(data)
         if query in row["Player"].casefold()
         and (team is None or row["Team ID"] == team)
-        and (
-            not reviewed
-            or row["Position review"]
-            in ("Reviewed demo midfielder", "Fictional demo midfielder")
-        )
+        and (not reviewed or (row["Player ID"], row["Team ID"]) in included)
     ]
     st.caption(
         f"{len(rows)} player/team rows · Initially sorted by rated minutes; click a column to sort. "
@@ -180,8 +183,8 @@ def explain_result(data, result):
         f"({100 * reference.appearance_coverage:.1f}% coverage)."
     )
     st.caption(
-        "Four-player demonstration: at most three replacements are available, "
-        "before further exclusions. Rankings are relative to this small cohort."
+        "Rankings are relative to the supplied reviewed cohort; sample sizes and exclusions "
+        "limit their interpretation. Historical team rows are kept separate."
     )
     st.caption(
         f"Style normalization: {len(result.style.normalization_ids)} complete player/team rows · "
@@ -500,7 +503,7 @@ def midfield_simulator(data, source_key):
     st.subheader("Midfield simulator")
     st.markdown(
         "**Hypothetical 4-3-3 midfield**, not an observed historical XI. Players from different clubs "
-        "are not assumed to have played together. Only four demo entries are considered."
+        "are not assumed to have played together. Only explicitly included, eligible reviews are considered."
     )
     selection_keys = [
         *(f"midfield_slot_{slot}" for slot in range(3)),
@@ -511,7 +514,7 @@ def midfield_simulator(data, source_key):
             st.session_state.pop(key, None)
         if "midfield_source" in st.session_state:
             st.caption(
-                "Local data changed; simulator player selections have been reset."
+                "Local data or reviews changed; simulator player selections have been reset."
             )
         st.session_state["midfield_source"] = source_key
     first, second = st.columns(2)
@@ -548,7 +551,7 @@ def midfield_simulator(data, source_key):
             table(exclusions)
         else:
             st.write(
-                "All four demo entries meet these thresholds and have complete metrics."
+                f"All {len(cohort)} available reviewed entries meet these thresholds and have complete metrics."
             )
     options = [(row.player_id, row.team_id) for row in cohort]
     if len({key[0] for key in options}) < 4:
@@ -641,13 +644,26 @@ def main():
         with st.expander("Use local Wyscout files"):
             with st.form("data_source"):
                 directory = st.text_input("Local data directory", key="data_dir")
+                review_file = st.text_input(
+                    "Optional local review JSON file",
+                    key="review_file",
+                    help="Blank uses the four default reviews. A supplied file replaces them; omitted players stay unverified.",
+                )
+                force_reload = st.checkbox("Force source reload", key="force_reload")
                 submitted = st.form_submit_button("Load season", key="load_season")
             if submitted:
+                if (
+                    st.session_state.get("data_mode") != "local"
+                    or st.session_state.get("loaded_directory") != directory
+                ):
+                    activate_source("local")
                 st.session_state["loaded_directory"] = directory
-                activate_source("local")
-                load_cached.clear()
+                st.session_state["loaded_review_file"] = review_file
+                if force_reload:
+                    load_cached.clear()
             st.caption(
-                "Supply the four JSON files outside Git. Load season forces a refresh."
+                "Files stay outside Git. Load season applies reviews without reprocessing unchanged data. "
+                "Force source reload recalculates metrics. Reviews are ignored in the fictional demo."
             )
     mode = st.session_state.get("data_mode")
     if mode is None:
@@ -664,7 +680,10 @@ def main():
                 st.session_state["loaded_directory"]
             )
             data = load_cached(root, fingerprint)
-            source_key = (root, fingerprint)
+            data = ui_data.apply_review_file(
+                data, st.session_state.get("loaded_review_file", "")
+            )
+            source_key = (root, fingerprint, ui_data.review_key(data))
     except (OSError, ValueError) as error:
         st.error(
             f"Could not load {'fictional demo' if mode == 'fictional' else 'local season'}: {error}"
@@ -677,10 +696,26 @@ def main():
         st.sidebar.markdown("**Active: FICTIONAL demo**")
     else:
         st.caption("Local Wyscout Bundesliga 2017/18 data")
-        st.info(
-            "Limited demonstration: only four reviewed midfielders. Their CM/CDM position proxies are not exhaustive tactical-position ground truth. Other players remain unverified."
-        )
+        if data.custom_reviews is None:
+            st.info(
+                "Limited demonstration: only four reviewed midfielders. Their CM/CDM position proxies are not exhaustive tactical-position ground truth. Other players remain unverified."
+            )
+        else:
+            st.info(
+                "External manual reviews are active. Evidence is recorded, not independently verified. "
+                "Omitted players remain unverified; no positions are inferred."
+            )
         st.sidebar.markdown("**Active: local Wyscout files**")
+    reviews = ui_data.configured_reviews(data)
+    unverified = sum(
+        (row.player_id, row.team_id) not in reviews for row in data.metrics.players
+    )
+    st.caption(
+        f"Cohort decisions: {sum(r.status == 'included' for r in reviews.values())} included · "
+        f"{sum(r.status == 'excluded' for r in reviews.values())} excluded · "
+        f"{unverified} unverified metric rows · {len({player for player, _ in reviews})} reviewed player IDs. "
+        "Decisions are scoped to player / historical team."
+    )
     matches, players, events = st.columns(3)
     matches.metric("Matches", len(data.metrics.matches))
     players.metric("Player / historical team rows", len(data.metrics.players))
@@ -694,6 +729,14 @@ def main():
         replacement_finder(data)
     with midfield:
         midfield_simulator(data, source_key)
+    with st.expander("Cohort reviews and evidence"):
+        rows = ui_data.review_rows(data)
+        if rows:
+            table(rows)
+        else:
+            st.info(
+                "The supplied review set is empty. No player is included for scoring."
+            )
 
 
 if __name__ == "__main__":

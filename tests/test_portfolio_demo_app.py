@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-pytest.importorskip("streamlit")
+streamlit = pytest.importorskip("streamlit")
 from streamlit.testing.v1 import AppTest  # noqa: E402
 
 from football_scouting_lab import ui_data  # noqa: E402
@@ -22,10 +22,9 @@ def demo_app():
 
 
 def test_complete_fictional_workflow_and_cached_controls(monkeypatch):
-    import runpy
-
-    # Each test starts with a cold demo cache; normal widget reruns reuse it.
-    runpy.run_path(str(APP), run_name="cache_setup")["load_demo_cached"].clear()
+    # Other source-switching tests may already have warmed the AppTest cache.
+    # Clear that cache too, rather than a separately imported bare-mode function.
+    streamlit.cache_data.clear()
     calls = []
     original = ui_data.calculate_metrics
 

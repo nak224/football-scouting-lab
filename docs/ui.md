@@ -1,4 +1,4 @@
-# Local scouting interface — through Milestone 5a
+# Local scouting interface — through Milestone 5b
 
 The optional Streamlit app is a local portfolio demonstration for historical
 Bundesliga recruitment analysis. It uses the existing metrics, role, similarity,
@@ -41,7 +41,9 @@ All four invented players have distinct IDs separate from the real reviewed
 cohort and explicit fictional eligibility assignments, not FIFA evidence or
 inferred positions. The real four-player review list is unchanged. Generated
 match records carry a versioned fictional marker: manually loading those files
-still shows the fictional banner, and mixing marked/unmarked matches is rejected.
+still shows the fictional banner. Mixing marked/unmarked matches, unsupported
+versions, explicit nulls or inconsistent marker values is rejected before events
+are loaded; none of these silently becomes real data.
 The generator refuses to overwrite existing dataset files.
 
 Suggested tour:
@@ -83,6 +85,60 @@ attribution guidance in [data sources](data-sources.md); source data stays outsi
 Git. A local subset is accepted without implying full-season completeness.
 Missing files and invalid consumed JSON fields produce an error before results
 are shown, including after replacing a previously loaded dataset.
+
+## External manual reviews (5b)
+
+In the local-file form, optionally supply **Optional local review JSON file**, then
+click **Load season**. This **replaces**, rather than merges with, the default four
+reviews. Blank restores those defaults; an empty JSON array `[]` deliberately
+leaves no eligible players. This input applies only to real-data mode; the
+**Load FICTIONAL demo** button ignores it. Manually loading marked fictional files
+with a review path fails instead of attaching real-data decisions to them.
+
+Minimal **fictional schema example**, not real position evidence and not a review
+for the built-in fictional demo:
+
+```json
+[
+  {
+    "player_id": 101,
+    "team_id": 201,
+    "status": "included",
+    "evidence": "synthetic:documentation-only",
+    "note": "Fictional schema example, not real position evidence."
+  }
+]
+```
+
+All five fields are required, with no extra fields. IDs must be positive JSON
+integers (not strings, decimals or booleans). `status` is exactly `included` or
+`excluded`; both require nonblank evidence and a review note. Evidence may be a
+document/URL/reference string: the app records it without fetching or independently
+verifying its football claims. Omitted pairs stay unverified; broad source position
+labels and metrics never generate reviews. Keep your review files outside Git.
+
+Each player/team pair must exist in loaded historical match sheets (lineup, bench
+or substitutions), with both IDs in source metadata. Merely having both IDs in
+the metadata, or a matching `currentTeamId`, is insufficient. Different teams for
+a transferred player need independent decisions. Duplicate pairs/JSON keys,
+unknown affiliations, missing files and invalid schemas fail with contextual
+errors and hide stale results. An unused bench player's review is valid but does
+not fabricate an appearance/metric sample and cannot make that player scoreable.
+
+The source summary shows included/excluded decisions, reviewed player IDs and
+unverified metric rows. **Cohort reviews and evidence** shows every supplied
+decision, note, evidence and metric-sample availability, including exclusions.
+Use **Included reviews only** in Player explorer; minimum minutes/coverage and
+measurement completeness still control actual scoring eligibility. Replacement
+and simulator exclusions explain why reviewed players cannot be scored.
+
+Review files are reread on each interaction, so edits at the same path (including
+evidence revisions) take effect without changing file timestamps or recalculating
+season events. A changed path or blank field takes effect on **Load season**.
+The cached snapshot is never modified: ranking uses the existing analytics and
+eligibility APIs unchanged. Stale references are repaired, and simulator lineup
+selections reset when review content changes. All complete eligible reviewed rows
+form its fixed comparison cohort; it is never narrowed to the selected lineup.
 
 ## Example workflow
 
@@ -165,17 +221,20 @@ Streamlit serializes the snapshot and returns independent copies, including nest
 mappings. Presentation helpers build fresh rows; the app treats all loaded records
 as read-only. Control changes reuse this snapshot and only rerun presentation and
 the existing small-cohort ranking/comparison APIs. Normal file changes invalidate
-the entry;
-**Load season** forces a refresh even if size/timestamps were preserved. There is
+the entry. **Load season** applies review configuration while reusing unchanged
+source metrics. Check **Force source reload** before submitting to recalculate
+even if source size/timestamps were preserved. There is
 no disk cache or cross-startup persistence. The fictional generator has a separate
 version-keyed cache; lineup/weight changes reuse its calculated season metrics.
 
-In local Wyscout mode, only **four** players have existing demonstration position
+Without a custom review file, only **four** players have existing demonstration position
 reviews. They are
 secondary positional proxies, not exhaustive or verified match-position ground
 truth. All other explored players remain unverified and are excluded from role
-and replacement ranking. A reference has at most three replacement players before
-further exclusions. Transfers stay separate historical team rows, and the backend
+and replacement ranking. That default demonstration has at most three replacement
+players per reference before further exclusions. External reviews can supply a
+different cohort; they do not establish independent football validation or change
+formulas. Transfers stay separate historical team rows, and the backend
 excludes every row belonging to the reference's underlying player ID.
 
 Unknown measurements remain blank. Displayed metrics use the rated sample only,
@@ -260,6 +319,28 @@ browser visual review or screenshots are claimed.
 searches found only synthetic fixtures; the earlier external `/tmp` sample was
 absent. No football data was downloaded or reconstructed from old audit outputs.
 The earlier real-data results in this guide belong to their dated milestones.
+
+## Milestone 5b verification — 2026-10-21
+
+Synthetic tests cover valid custom cohorts, excluded/unverified pairs, invalid
+schemas/IDs/evidence, duplicate records/JSON keys, unknown historical references,
+transfers and unused bench entries without metric samples. Streamlit AppTest
+exercises review revisions at the same path, new paths, restored defaults, changed
+reference/candidate pools, evidence display, empty/invalid states, recovery and
+fictional/local source switching. Instrumentation confirms one season metric
+calculation across review changes and ordinary widget changes; custom reviews
+never mutate the cached default or fictional assignments. Unsupported/inconsistent
+fictional marker versions fail before event processing.
+
+Validation: Ruff lint and formatting checks passed; **472 tests passed**, including
+the built-in Streamlit AppTest interactions. No scoring formulas or dependencies
+were changed.
+
+**Real-data validation remains unavailable in 5b.** Searches of accessible
+`/workspace` and `/tmp` paths, excluding generated test/cache directories, found
+only the checked-in synthetic fixtures; one system directory was unreadable.
+No legitimate local Bundesliga source files were available for this smoke.
+No data was downloaded, real player review invented, or real-data success claimed.
 
 ## Checks
 

@@ -26,24 +26,24 @@ This MVP demonstrates explainable metrics, configurable recruitment priorities,
 fixed-cohort comparisons, data validation and a usable local Python interface.
 Its four-player samples are small; role fits are application templates and lineup
 coverage is descriptive, not chemistry or future performance. Optional real-data
-mode retains the four existing positional-proxy reviews and their data-coverage
-limits. See the [UI guide](docs/ui.md) and [data sources](docs/data-sources.md).
+mode supports an external manual review file, or retains the four existing
+positional-proxy reviews by default. Data-coverage limits remain visible.
+See the [UI guide](docs/ui.md) and [data sources](docs/data-sources.md).
 On Windows, use `py -3.12 -m venv .venv` and `.venv\Scripts\Activate.ps1`.
 
 ## Current status
 
-**Milestone 5a: self-contained fictional portfolio demo and workflow validation.**
-A deterministic generator supplies four fictional players in a separate fixture;
-the existing loaders, minute estimates, metrics, role/style/recruitment APIs and
-midfield comparison compute all results. The real reviewed cohort is unchanged.
-The UI has explicit source controls, resets analysis settings when switching
-sources, and keeps one prominent fictional-data banner. Tests cover complete
-three-tab workflows, invalid/empty states, source isolation and cache reuse.
+**Milestone 5b: configurable external midfielder reviews.** Real-data mode accepts
+validated player/historical-team decisions with evidence and notes. Review changes
+reuse cached season metrics and update rankings/simulator eligibility without
+changing scoring formulas. Blank configuration keeps the four default reviews;
+the self-contained fictional demo remains separate. Unknown/inconsistent fictional
+version markers now fail explicitly. No new real-player reviews are bundled.
 
 Real Wyscout loading remains available under **Use local Wyscout files**. No
-real local dataset was accessible for a new simulator smoke in 5a. Earlier real
+real local dataset was accessible for a new smoke in 5b. Earlier real
 results below are historical audits, not new validation. See [actual checks and
-limitations](docs/ui.md#milestone-5a-verification--2026-10-21).
+limitations](docs/ui.md#milestone-5b-verification--2026-10-21).
 
 The [2a metrics](docs/metrics.md) retain separate observed and matched per-90
 samples. The raw-mirror audit found usable durations in **267/306 matches** and
@@ -129,7 +129,7 @@ caches derived metrics so controls do not reprocess the raw events.
 
 Search a name or historical team in **Player explorer**. In **Replacement finder**,
 choose a reviewed reference and role, adjust priorities/weights/thresholds, then
-inspect the separate scores and feature explanations. Only four players have
+inspect the separate scores and feature explanations. By default, four players have
 reviewed demo positions; unverified players remain visible in exploration and
 are excluded from recruitment ranking. Missing measurements stay unavailable.
 In **Midfield simulator**, the default hypothetical trio is Thiago / Bayern,
@@ -138,6 +138,36 @@ Change the lineup, slot and four profile weights to inspect signed coverage
 changes separately from recruitment scores. At least four distinct, eligible,
 complete reviewed players are required; exclusions are explained in the tab.
 See [UI setup, example workflow, cache behavior and smoke results](docs/ui.md).
+
+### Optional externally reviewed cohort
+
+In **Use local Wyscout files**, set **Optional local review JSON file** and click
+**Load season**. A file replaces the default reviews; omitted player/team pairs
+remain unverified. `[]` intentionally includes nobody. Blank restores defaults.
+This schema example is **entirely fictional**, not a verified football review and
+not configuration for the built-in fictional demo:
+
+```json
+[
+  {
+    "player_id": 101,
+    "team_id": 201,
+    "status": "included",
+    "evidence": "synthetic:documentation-only",
+    "note": "Fictional schema example, not real position evidence."
+  }
+]
+```
+
+Use actual original IDs and independently reviewed evidence for your own local
+data. Each pair must exist in historical match sheets and player/team metadata;
+`currentTeamId` is never affiliation evidence. Status is `included` or `excluded`;
+both require nonblank evidence and note. Duplicate decisions and unknown pairs
+fail clearly. Transfer team rows need separate decisions. Keep files outside Git.
+The UI shows review counts, evidence, eligibility and exclusion reasons. Revisions
+are read on the next interaction without recalculating events; **Force source
+reload** explicitly recalculates unchanged source files. External reviews never
+apply to fictional data. See [review-file details](docs/ui.md#external-manual-reviews-5b).
 
 ## Load local match metadata
 
@@ -326,7 +356,7 @@ The 4b2 simulator calls this same comparison API; recruitment scores are unchang
 estimates, 2a covered player metrics, 2b eligibility/role fit and 3a style
 similarity/basic shortlists, 3b combined replacement ranking, 4a local scouting UI,
 4b1 standalone hypothetical midfield comparison, 4b2 simulator integration and
-5a fictional portfolio demo/workflow checks are implemented.
+5a fictional portfolio demo/workflow checks and 5b external review configuration are implemented.
 Remaining work requires review.
 These are budget allocations, not recorded hours;
 the ranges sum to the 25–40-hour target.
@@ -338,7 +368,7 @@ the ranges sum to the 25–40-hour target.
 | 2 | Auditable metrics, minutes eligibility, two role profiles, and custom weights | 5–8 h | 2a–2b APIs and limited cohort demo implemented; production cohort and threshold calibration require review |
 | 3 | Separate similarity/fit scores, replacement recommendations, and lineup compatibility | 5–8 h | 3a–3b style similarity and adjustable combined replacement ranking implemented; hypothetical trio API implemented in 4b1 with separate 4b2 UI |
 | 4 | Lightweight local player exploration and structured scouting search UI | 4–7 h | 4a explorer/replacement finder plus 4b2 midfield simulator implemented; unchanged four-player demo |
-| 5 | End-to-end checks, explanations, and portfolio documentation | 2–4 h | 5a fictional demo, complete workflow tests and quick-start implemented; real simulator smoke unavailable locally |
+| 5 | End-to-end checks, explanations, and portfolio documentation | 2–4 h | 5a fictional demo and 5b external cohort configuration implemented; real-data smoke unavailable locally |
 
 See [architecture](docs/architecture.md) for the planned design and score
-boundaries. Milestone 5a stops here; further implementation requires review.
+boundaries. Milestone 5b stops here; further implementation requires review.
