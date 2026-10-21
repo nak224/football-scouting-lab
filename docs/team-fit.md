@@ -6,7 +6,9 @@ existing `PlayerSeasonMetrics`, preserving original player/team and match IDs.
 Slots are arbitrary ordered indices **0, 1, 2**, not observed tactical positions.
 This is a descriptive complementarity heuristic, not a model of team chemistry,
 synergy, match results or tactical suitability. It never enters `rank_replacements`
-or modifies individual style/role scores. Streamlit integration is deferred to 4b2.
+or modifies individual style/role scores. The [4b2 simulator tab](ui.md#midfield-simulator-workflow-4b2)
+now calls this same API. `prepare_player_profile()` exposes the existing completeness
+validation so the UI can report exclusions before fixing its comparison cohort.
 
 ## Fixed comparison cohort and completeness
 

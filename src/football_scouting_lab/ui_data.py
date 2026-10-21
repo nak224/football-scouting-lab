@@ -5,10 +5,11 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from .demo_cohort import DEMO_REVIEWS
-from .metrics import SeasonMetrics, calculate_metrics
+from .metrics import PlayerSeasonMetrics, SeasonMetrics, calculate_metrics
 from .recruitment import RecruitmentRanking
 from .roles import EligibilityThresholds, assess_eligibility
 from .similarity import compare_styles, normalize_style_weights
+from .team_fit import MidfieldComparison, prepare_player_profile
 from .wyscout import load_events, load_season
 
 DATA_FILES = (
@@ -190,3 +191,58 @@ def shortlist_rows(data: ScoutingData, result: RecruitmentRanking) -> list[dict]
             }
         )
     return rows
+
+
+def midfield_cohort(
+    data: ScoutingData, thresholds: EligibilityThresholds
+) -> tuple[tuple[PlayerSeasonMetrics, ...], list[dict]]:
+    """Select complete reviewed rows before comparing ANY lineups or weights.
+
+    Backend profile validation supplies completeness checks; no normalization or
+    scoring is performed here. Missing reviewed entries stay explicit exclusions.
+    """
+    reviews = present_reviews(data)
+    cohort, exclusions = [], []
+    for candidate in assess_eligibility(data.metrics.players, reviews, thresholds):
+        key = (candidate.player.player_id, candidate.player.team_id)
+        if key not in reviews:
+            continue
+        reasons = list(candidate.reasons)
+        if not reasons:
+            try:
+                prepare_player_profile(candidate.player)
+            except ValueError as error:
+                reasons.append(str(error))
+        if reasons:
+            exclusions.append(
+                {
+                    "Player / historical team": data.label(key),
+                    "Exclusion reason": "; ".join(reasons),
+                }
+            )
+        else:
+            cohort.append(candidate.player)
+    for key in sorted(DEMO_REVIEWS.keys() - reviews.keys()):
+        exclusions.append(
+            {
+                "Player / historical team": f"Unavailable demo entry {key[0]}/{key[1]}",
+                "Exclusion reason": "player/team row absent from local metrics",
+            }
+        )
+    return tuple(cohort), exclusions
+
+
+def midfield_feature_rows(result: MidfieldComparison) -> list[dict]:
+    """Display backend measurements/contributions unchanged; coverage uses [0, 1]."""
+    return [
+        {
+            "Feature": METRIC_LABELS[feature.metric],
+            "Before coverage": feature.before_coverage,
+            "After coverage": feature.after_coverage,
+            "Coverage change": feature.coverage_change,
+            "Before raw mean": feature.before_mean,
+            "After raw mean": feature.after_mean,
+            "Weighted contribution (points)": feature.weighted_change,
+        }
+        for feature in result.features
+    ]

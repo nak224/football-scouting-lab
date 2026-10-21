@@ -7,23 +7,22 @@ midfielders in **Wyscout Bundesliga 2017/18**. The total development target is
 
 ## Current status
 
-**Milestone 4b1: hypothetical midfield-trio compatibility analysis.** A small
-Python API compares feature coverage before/after a user-selected replacement,
-using fixed cohort scales and adjustable profile weights. It retains raw values,
-trio means, feature changes, samples and warnings. This is descriptive profile
-representation, not chemistry or a predicted team-performance score, and remains
-separate from recruitment rankings. See [midfield comparison](docs/team-fit.md).
+**Milestone 4b2: a third Streamlit tab for hypothetical midfield replacements.**
+The **Midfield simulator** reuses cached season metrics and the existing
+`compare_midfield()` API. Select three reviewed players, a replacement slot,
+a candidate and profile weights, then inspect BEFORE/AFTER lineups, feature
+coverage, raw means and signed weighted changes. Fixed scales, samples and
+exclusions remain visible. See the [UI workflow](docs/ui.md) and
+[comparison formula](docs/team-fit.md).
 
-The existing [local Streamlit interface](docs/ui.md) still provides player
-exploration and explained replacement ranking. Trio integration is deferred to
-4b2. The unchanged four-player positional-proxy cohort remains a limited
-demonstration, not verified match-position labels.
+Player exploration and recruitment rankings retain their behavior. The unchanged
+four-player positional-proxy cohort remains a limited demonstration, not verified
+match-position labels; the trio is hypothetical and can mix historical clubs.
 
 The [2a metrics](docs/metrics.md) retain separate observed and matched per-90
 samples. The raw-mirror audit found usable durations in **267/306 matches** and
 positive minutes for **7,395/8,501 appearances**, with uneven team coverage.
-The conservative estimator is unchanged. Broader cohort validation and trio
-UI integration remain planned. Tests use synthetic data; real examples
+The conservative estimator is unchanged. Broader cohort validation remains planned. Tests use synthetic data; real examples
 and source limits are documented.
 
 The backend has no runtime dependencies; Streamlit is an optional `ui` extra.
@@ -38,7 +37,7 @@ event archive. Only the German member was downloaded via byte ranges. See
 
 Eligibility, role-fit, style-shortlist and combined-ranking Python functions exist.
 A local exploration/replacement interface and a standalone hypothetical-trio
-comparison API exist. Trio UI integration remains planned.
+comparison API exist, with a separate simulator tab for the trio workflow.
 
 - Explore central midfielders and use structured scouting search and filters.
 - Compare **Deep-Lying Playmaker** and **Ball-Winning Midfielder** profiles with
@@ -106,6 +105,11 @@ choose a reviewed reference and role, adjust priorities/weights/thresholds, then
 inspect the separate scores and feature explanations. Only four players have
 reviewed demo positions; unverified players remain visible in exploration and
 are excluded from recruitment ranking. Missing measurements stay unavailable.
+In **Midfield simulator**, the default hypothetical trio is Thiago / Bayern,
+Weigl / Dortmund and Keita / Leipzig, with Vidal / Bayern replacing slot 2.
+Change the lineup, slot and four profile weights to inspect signed coverage
+changes separately from recruitment scores. At least four distinct, eligible,
+complete reviewed players are required; exclusions are explained in the tab.
 See [UI setup, example workflow, cache behavior and smoke results](docs/ui.md).
 
 ## Load local match metadata
@@ -287,14 +291,15 @@ that players from different clubs played together. The comparison reports fixed
 feature scales, raw means, coverage changes, normalized weights and samples.
 See [formula, custom-weight Python example and verification limits](docs/team-fit.md).
 Real local data was unavailable for a new 4b1 smoke; tests use synthetic records.
-The Streamlit app and recruitment scores are unchanged.
+The 4b2 simulator calls this same comparison API; recruitment scores are unchanged.
 
 ## Milestones and budget
 
 0a, the 0b source audit, 1a metadata, 1b events, and 1c match-level playing-time
 estimates, 2a covered player metrics, 2b eligibility/role fit and 3a style
-similarity/basic shortlists, 3b combined replacement ranking, 4a local scouting UI
-and 4b1 standalone hypothetical midfield comparison are implemented.
+similarity/basic shortlists, 3b combined replacement ranking, 4a local scouting UI,
+4b1 standalone hypothetical midfield comparison and 4b2 simulator integration
+are implemented.
 Remaining work requires review.
 These are budget allocations, not recorded hours;
 the ranges sum to the 25–40-hour target.
@@ -304,9 +309,9 @@ the ranges sum to the 25–40-hour target.
 | 0a–0b | Foundation, MVP scope, and source verification | 3–5 h | Foundation and audit implemented; primary-source checks blocked |
 | 1 | Resolve source/license checks; ingest, normalize, and validate the German season and cohort | 6–8 h | Metadata, raw-mirror event validation and match minutes implemented; original event-binary identity and broader cohort validation remain pending |
 | 2 | Auditable metrics, minutes eligibility, two role profiles, and custom weights | 5–8 h | 2a–2b APIs and limited cohort demo implemented; production cohort and threshold calibration require review |
-| 3 | Separate similarity/fit scores, replacement recommendations, and lineup compatibility | 5–8 h | 3a–3b style similarity and adjustable combined replacement ranking implemented; hypothetical trio API implemented in 4b1; UI integration planned |
-| 4 | Lightweight local player exploration and structured scouting search UI | 4–7 h | 4a explorer/replacement finder and 4b1 standalone trio comparison implemented; 4b2 integration planned |
+| 3 | Separate similarity/fit scores, replacement recommendations, and lineup compatibility | 5–8 h | 3a–3b style similarity and adjustable combined replacement ranking implemented; hypothetical trio API implemented in 4b1 with separate 4b2 UI |
+| 4 | Lightweight local player exploration and structured scouting search UI | 4–7 h | 4a explorer/replacement finder plus 4b2 midfield simulator implemented; unchanged four-player demo |
 | 5 | End-to-end checks, explanations, and portfolio documentation | 2–4 h | Planned |
 
 See [architecture](docs/architecture.md) for the planned design and score
-boundaries. Milestone 4b1 stops here; further implementation requires review.
+boundaries. Milestone 4b2 stops here; further implementation requires review.
