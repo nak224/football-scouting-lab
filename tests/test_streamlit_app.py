@@ -85,8 +85,9 @@ def test_rank_controls_explanations_and_cache_reuse(
     assert any("at least one style weight" in row.value for row in app.warning)
     assert not app.exception
     assert len(calls) == 1
+    app.checkbox(key="force_reload").check()
     app.button(key="load_season").click().run()
-    assert len(calls) == 2  # explicit reload even when file stamps are unchanged
+    assert len(calls) == 2  # explicitly requested source reload
     path = ui_data_dir / "teams.json"
     path.write_text(path.read_text() + "\n")
     app.run()
@@ -129,7 +130,7 @@ def test_invalid_json_and_reload_do_not_show_stale_results(
 
 def test_role_weights_thresholds_and_review_filter(ui_data_dir, ui_demo_reviews):
     app = load_app(ui_data_dir)
-    app.checkbox[0].check().run()
+    app.checkbox(key="cohort_only").check().run()
     assert set(app.dataframe[0].value["Position review"]) == {
         "Reviewed demo midfielder"
     }
