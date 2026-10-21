@@ -215,3 +215,21 @@ def test_external_cohort_need_not_contain_any_default_demo_ids(
     assert app.tabs[2].metric
     assert set(evidence_table(app)["Player ID"]) == set(mapping.values())
     assert not app.error and not app.exception
+
+
+def test_missing_global_metadata_does_not_invalidate_a_known_unused_bench_pair(
+    ui_data_dir, tmp_path
+):
+    path = ui_data_dir / "players.json"
+    players = json.loads(path.read_text())
+    path.write_text(json.dumps([row for row in players if row["wyId"] != 109]))
+    reviews = write_reviews(tmp_path / "reviews.json", pairs=((109, 201),))
+    app = load_app(ui_data_dir, reviews)
+    assert not app.error and not app.exception
+    row = evidence_table(app).iloc[0]
+    assert row["Player ID"] == 109
+    assert row["Player metadata"] == "Missing from players.json"
+    assert row["Metric sample"] == "No player/team metric sample"
+    assert any("No reviewed reference" in item.value for item in app.tabs[1].info)
+    assert not app.tabs[2].metric
+    assert not any(widget.key == "reference" for widget in app.selectbox)

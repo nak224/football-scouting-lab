@@ -152,3 +152,46 @@ def test_invalid_files(tmp_path, content, message):
 def test_missing_review_file_is_a_configuration_error(tmp_path):
     with pytest.raises(ValueError, match="cannot read review JSON"):
         load_position_reviews(tmp_path / "missing.json", frozenset())
+
+
+@pytest.mark.parametrize(
+    "player,team,has_sample", [(109, 201, False), (101, 201, True)]
+)
+def test_match_sheet_pair_remains_valid_when_global_player_metadata_is_missing(
+    ui_data_dir, tmp_path, player, team, has_sample
+):
+    players_path = ui_data_dir / "players.json"
+    players = json.loads(players_path.read_text())
+    players_path.write_text(
+        json.dumps([row for row in players if row["wyId"] != player])
+    )
+    data = load_scouting_data(str(ui_data_dir))
+    path = write_reviews(tmp_path / "reviews.json", [decision(player, team)])
+    custom = apply_review_file(data, path)
+    assert (player, team) in custom.historical_pairs
+    assert custom.player_names[player] == f"Player {player}"
+    assert review_rows(custom)[0]["Player metadata"] == "Missing from players.json"
+    assert bool(present_reviews(custom)) == has_sample
+    if has_sample:
+        assert reference_options(custom, EligibilityThresholds(0, 0), None) == (
+            (player, team),
+        )
+        sample = next(
+            row
+            for row in custom.metrics.players
+            if (row.player_id, row.team_id) == (player, team)
+        )
+        assert all(
+            "player ID missing from players.json" in row.warnings
+            for row in sample.matches
+        )
+    else:
+        assert reference_options(custom, EligibilityThresholds(0, 0), None) == ()
+        cohort, exclusions = midfield_cohort(custom, EligibilityThresholds(0, 0))
+        assert not cohort
+        assert "absent from local metrics" in exclusions[0]["Exclusion reason"]
+        assert "missing from players.json" in exclusions[0]["Exclusion reason"]
+    # Actual absence from historical match sheets still fails, even for known IDs.
+    write_reviews(tmp_path / "reviews.json", [decision(777, 201)])
+    with pytest.raises(ValueError, match="unknown historical player/team"):
+        apply_review_file(data, path)
