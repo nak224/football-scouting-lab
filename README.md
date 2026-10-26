@@ -18,13 +18,15 @@ python -m streamlit run streamlit_app.py
 
 Select **Load FICTIONAL demo** in the sidebar. All three sections work immediately:
 search `Casey` in **Player explorer** and select the row to open a profile,
-change a role/weights in **Replacement
+then try **Compare player** or **Similar players**. Change a role/weights in **Replacement
 finder**, then swap a player in **Midfield simulator** and inspect feature changes.
 Every demo player, club, event and result is **invented — NOT real Bundesliga
 statistics**. Scores are calculated by the existing analytics, not canned UI values.
 
 Genuine fictional-demo screenshots: [Player discovery](docs/screenshots/explorer-list.png)
 and [Player profile](docs/screenshots/explorer-profile.png).
+Also see [Similar players](docs/screenshots/explorer-similar.png) and the
+[shared-radar comparison](docs/screenshots/explorer-comparison.png).
 
 This MVP demonstrates explainable metrics, configurable recruitment priorities,
 fixed-cohort comparisons, data validation and a usable local Python interface.
@@ -37,12 +39,15 @@ On Windows, use `py -3.12 -m venv .venv` and `.venv\Scripts\Activate.ps1`.
 
 ## Current status
 
-**Player Explorer redesign.** A compact list supports player-name, league,
+**Integrated Player Explorer comparison.** A compact list supports player-name, league,
 historical-team and original broad-position filters. Native row selection opens
 a profile with rated statistics, per-feature percentiles and a radar chart.
 Compare with the same position or all players; the comparison population uses
 at least 600 rated minutes. Recruitment reviews remain separate from discovery.
-Role fit, style similarity, replacement ranking and the simulator are unchanged.
+**Compare player** searches a second player; **Similar players** suggests up to
+five source-wide matches with one-click comparison. Both profiles share one
+percentile population and radar. This descriptive similarity is separate from
+the original Replacement Finder's style/role scores, which remain unchanged.
 
 Real Wyscout loading remains available under **Use local Wyscout files**. No
 real local dataset was accessible for a new redesign smoke. Earlier real
@@ -139,6 +144,10 @@ for the two-column profile; **Player list** returns to your filters. Raw values
 sit beside a percentile radar; missing values remain unavailable. Broad positions
 come from `players.json` `role.name`, never from recruitment reviews. Unknown
 positions stay unknown. See [comparison method and limits](docs/ui.md#player-discovery-and-profiles).
+Use **Compare player** or **Similar players** from a profile. Search Player B by
+name, historical club and broad position, or select a suggestion. **Change player B**
+keeps A fixed; **Player profile** and **Player list** preserve your navigation.
+See [direct comparison and descriptive similarity](docs/ui.md#direct-player-comparison-and-similar-players).
 
 In **Replacement finder**,
 choose a reviewed reference and role, adjust priorities/weights/thresholds, then
