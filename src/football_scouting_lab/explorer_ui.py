@@ -6,6 +6,7 @@ import plotly.graph_objects as go
 import streamlit as st
 
 from . import explorer
+from .comparison_ui import comparison_page, open_comparison
 from .ui_data import POSITION_GROUPS
 
 COMPARISON_HELP = (
@@ -25,7 +26,7 @@ STAT_LABELS = {
 }
 
 
-def radar_figure(features):
+def radar_figure(features, other=None, names=None):
     labels = [RADAR_LABELS[explorer.FEATURES.index(row.metric)] for row in features]
     values = [row.percentile for row in features]
     raw = [[row.value, row.peer_count] for row in features]
@@ -67,11 +68,36 @@ def radar_figure(features):
             },
         },
     )
+    if other is not None:
+        second_values = [row.percentile for row in other]
+        second_raw = [[row.value, row.peer_count] for row in other]
+        figure.data[0].name = names[0]
+        figure.add_trace(
+            go.Scatterpolar(
+                name=names[1],
+                r=[*second_values, second_values[0]],
+                theta=[*labels, labels[0]],
+                customdata=[*second_raw, second_raw[0]],
+                mode="lines+markers",
+                fill="toself",
+                line={"color": "#d97706", "width": 2.5},
+                marker={"size": 7, "color": "#d97706"},
+                fillcolor="rgba(217,119,6,0.12)",
+                hovertemplate=figure.data[0].hovertemplate,
+            )
+        )
+        figure.update_layout(
+            height=350,
+            showlegend=True,
+            legend={"orientation": "h", "x": 0.5, "xanchor": "center", "y": -0.16},
+            margin={"l": 70, "r": 70, "t": 30, "b": 65},
+        )
     return figure
 
 
 def _back_to_list():
     st.session_state.pop("explorer_player", None)
+    st.session_state["explorer_view"] = "profile"
     st.session_state["explorer_epoch"] = st.session_state.get("explorer_epoch", 0) + 1
 
 
@@ -79,7 +105,20 @@ def player_profile(data, key):
     player = next(
         row for row in data.metrics.players if (row.player_id, row.team_id) == key
     )
-    st.button("← Player list", key="explorer_back", on_click=_back_to_list)
+    back, compare, similar = st.columns([3, 1, 1])
+    back.button("← Player list", key="explorer_back", on_click=_back_to_list)
+    compare.button(
+        "Compare player",
+        key="explorer_compare_action",
+        on_click=open_comparison,
+        args=(data, key, "compare"),
+    )
+    similar.button(
+        "Similar players",
+        key="explorer_similar_action",
+        on_click=open_comparison,
+        args=(data, key, "similar"),
+    )
     st.subheader(data.player_names.get(key[0], f"Player {key[0]}"))
     group = explorer.position(data, key[0])
     team = data.team_names.get(key[1], f"Team {key[1]}")
@@ -108,6 +147,10 @@ def player_profile(data, key):
     ):
         value = values[metric]
         column.metric(label, f"{value:.1f}{suffix}" if value is not None else "—")
+    if "explorer_comparison" not in st.session_state:
+        st.session_state["explorer_comparison"] = st.session_state.get(
+            "explorer_profile_mode", "Same position"
+        )
     mode = st.radio(
         "Compare with",
         ["Same position", "All players"],
@@ -115,6 +158,7 @@ def player_profile(data, key):
         key="explorer_comparison",
         help=COMPARISON_HELP,
     )
+    st.session_state["explorer_profile_mode"] = mode
     result = explorer.compare_player(data, key, mode=mode)
     st.caption(
         f"{len(result.peer_ids)} comparable player/team rows", help=COMPARISON_HELP
@@ -178,7 +222,10 @@ def player_explorer(data, source_key):
     selected = st.session_state.get("explorer_player")
     keys = {(row.player_id, row.team_id) for row in data.metrics.players}
     if selected in keys:
-        player_profile(data, selected)
+        if st.session_state.get("explorer_view") in ("compare", "similar"):
+            comparison_page(data, selected, radar_figure)
+        else:
+            player_profile(data, selected)
         return
     st.session_state.pop("explorer_player", None)
     st.subheader("Discover players")
@@ -289,4 +336,5 @@ def player_explorer(data, source_key):
     key = explorer.selected_player(rows, event.selection.rows)
     if key is not None:
         st.session_state["explorer_player"] = key
+        st.session_state["explorer_view"] = "profile"
         st.rerun()

@@ -249,6 +249,75 @@ Ruff lint/format and the full suite passed on Python **3.12.14 and 3.13.5**:
 1440 px desktop width verified native sorted-row selection, comparison switching,
 filtered back navigation and both other tabs without JavaScript page errors.
 
+## Direct player comparison and similar players
+
+From a player profile, choose **Compare player** to search Player B, or
+**Similar players** for up to five suggestions. Selecting a suggested row opens
+the comparison immediately. The B picker combines name, historical team and
+broad source-position filters; league remains fixed to Bundesliga 2017/18.
+Search filters narrow B's results, not the percentile population or suggestions.
+Same-position mode limits choices to A's known broad role; select **All players**
+for cross-position comparisons. An Unknown reference defaults to All players.
+
+The comparison shows historical A/B identities, minutes and rated/recorded
+appearances side by side. Both traces overlay **one** 0–100 radar with distinct
+colors and labels. The table below retains raw values, both percentiles,
+per-feature peer counts and **B − A** raw differences; completion differences
+are percentage points. A missing value or difference stays blank. Radar axes
+use only common available percentiles and require at least three; nothing is
+zero-filled. Manual comparison can show incomplete/low-minute players without
+inventing a similarity score.
+
+**Change player B** preserves A. **Player profile** returns to A, retaining the
+chosen pair, and **Player list** restores the original filters. A source/file
+change clears stale selections. Review-file edits do not alter these comparisons.
+The cached season is reused throughout; event processing does not rerun for
+search, suggestions, pair changes or comparison controls.
+
+### Fixed population and descriptive similarity
+
+The population is the full source's player/team metric rows with **at least 600
+rated minutes**, rated counts and a rated recorded appearance, filtered by A's
+known broad position or explicitly **All players**. Recruitment reviews and the
+four-player real-data demonstration cohort are never used to choose it. A and B
+are included when they qualify. Each feature uses the same per-feature available
+peer sample for **both** players, with the existing midrank percentile convention
+and minimum two peers. Changing B or search filters cannot refit A's scale.
+Changing the population mode explicitly changes the entire shared context.
+
+Suggestions use a fixed basis: **every comparable reference feature**, at least
+three of the four existing measurements. A and each candidate need 600 rated
+minutes; every ranked candidate must supply the **complete same basis**.
+Incomplete candidates are excluded with reasons in **Method and exclusions**,
+rather than gaining an advantage from a shorter distance vector. A reference
+feature without enough peers is omitted uniformly for all candidates. The paired
+radar can still show three common features when a manually chosen B lacks a fourth,
+while its similarity remains unavailable for an incomplete reference basis.
+
+`descriptive similarity = 100 − mean(abs(percentile_A − percentile_B))`.
+
+All included features have equal weight. Identical percentile profiles score 100;
+constant tied features have percentile 50 and contribute zero distance. Tiny groups
+are unstable. Ties sort by original player ID and historical team ID. A's underlying
+player ID is excluded across all teams; other transfer rows stay distinct.
+This is a **descriptive statistical profile distance**, not a probability, quality
+rating, role fit or replacement recommendation. It differs from the original
+Replacement Finder's weighted/min-max style score and is never blended into it.
+
+### Integrated comparison verification — 2026-10-26
+
+Synthetic tests exercise native selection, pair navigation, shared scales, ranking,
+transfers, tied/constant/tiny groups, missing measurements, source isolation and
+cached calculation reuse. Desktop Chromium was used for the actual comparison,
+suggestion and B-change workflow; existing Replacement Finder and simulator views
+also rendered. Genuine fictional captures show [suggestions](screenshots/explorer-similar.png)
+and the [paired radar/table](screenshots/explorer-comparison.png). No new real-data
+smoke is claimed: legitimate local Wyscout files remain unavailable. No datasets,
+dependencies, recruitment algorithms, models or services were added.
+Ruff lint/format and **525 tests per version** passed on Python **3.12.14 and
+3.13.5**, with no failures or skips. Chromium **154.0.8037.57** recorded no
+JavaScript page errors during the actual desktop workflow.
+
 ## Midfield simulator workflow (4b2)
 
 Open the third tab, **Midfield simulator**, after loading the same local files.
