@@ -36,12 +36,12 @@ def test_initial_and_missing_invalid_data(tmp_path):
 
 def test_explorer_search_filters_and_empty_results(ui_data_dir, ui_demo_reviews):
     app = load_app(ui_data_dir)
-    assert "No reviewed reference" in app.info[-1].value  # default 600 minutes
+    assert any("No reviewed reference" in info.value for info in app.info)
     app.text_input(key="player_search").set_value("synthetic player a").run()
     frame = app.dataframe[0].value
     assert set(frame["Team ID"]) == {201, 202}
     assert len(frame) == 2
-    app.selectbox[0].set_value(201).run()
+    app.selectbox(key="team_filter").set_value(201).run()
     assert len(app.dataframe[0].value) == 1
     app.text_input(key="player_search").set_value("Nobody here").run()
     assert any("No players match" in row.value for row in app.info)
@@ -139,12 +139,12 @@ def test_invalid_json_and_reload_do_not_show_stale_results(
     assert not app.exception
 
 
-def test_role_weights_thresholds_and_review_filter(ui_data_dir, ui_demo_reviews):
+def test_role_weights_thresholds_and_position_independence(
+    ui_data_dir, ui_demo_reviews
+):
     app = load_app(ui_data_dir)
-    app.checkbox(key="cohort_only").check().run()
-    assert set(app.dataframe[0].value["Position review"]) == {
-        "Reviewed demo midfielder"
-    }
+    assert "Position review" not in app.tabs[0].dataframe[0].value.columns
+    assert set(app.tabs[0].dataframe[0].value["Position"]) == {"Unknown"}
     app.number_input(key="min_minutes").set_value(0.0).run()
     for metric in (
         "pass_attempts_per90",

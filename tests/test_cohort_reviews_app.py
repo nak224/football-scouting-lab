@@ -66,10 +66,9 @@ def test_reviews_refresh_references_candidates_evidence_without_recalculating(
     assert len(evidence_table(app)) == 4
     assert set(evidence_table(app)["Evidence"]) == {"synthetic:test-review"}
     assert any("4 included · 0 excluded" in item.value for item in app.caption)
-    app.checkbox(key="cohort_only").check().run()
-    assert set(app.tabs[0].dataframe[0].value["Position review"]) == {
-        "Manually included midfielder"
-    }
+    # Discovery uses broad source positions, independently of recruitment reviews.
+    assert "Position review" not in app.tabs[0].dataframe[0].value.columns
+    discovery = app.tabs[0].dataframe[0].value.copy()
     app.slider(key="style_priority").set_value(0.75).run()
     # Same file path, revised decisions and evidence. No Load season required.
     write_reviews(path, excluded=((224677, 2447),), evidence="synthetic:revised")
@@ -82,6 +81,7 @@ def test_reviews_refresh_references_candidates_evidence_without_recalculating(
     assert len(app.tabs[1].dataframe[0].value) == 2
     assert any("at least four distinct" in item.value for item in app.tabs[2].warning)
     assert set(evidence_table(app)["Evidence"]) == {"synthetic:revised"}
+    assert app.tabs[0].dataframe[0].value.equals(discovery)
     exclusions = next(
         frame.value
         for frame in app.tabs[2].dataframe

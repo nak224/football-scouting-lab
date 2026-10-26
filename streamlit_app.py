@@ -5,6 +5,7 @@ from dataclasses import asdict
 import streamlit as st
 
 from football_scouting_lab import ui_data
+from football_scouting_lab.explorer_ui import player_explorer
 from football_scouting_lab.fictional_data import BASELINE as FICTIONAL_BASELINE
 from football_scouting_lab.fictional_data import CANDIDATE as FICTIONAL_CANDIDATE
 from football_scouting_lab.fictional_data import VERSION as FICTIONAL_VERSION
@@ -26,12 +27,14 @@ ROLE_NAMES = {
 
 @st.cache_data(max_entries=1, show_spinner="Loading season and calculating metrics…")
 def load_cached(directory, fingerprint):
+    """Cache metrics plus original broad positions; invalidate older payloads."""
     # fingerprint is deliberately hashed: file changes invalidate the derived snapshot.
     return ui_data.load_scouting_data(directory)
 
 
 @st.cache_data(max_entries=1, show_spinner="Generating fictional demo…")
 def load_demo_cached(version):
+    """Cache the fictional fixture with its explicit raw role metadata."""
     return ui_data.load_fictional_demo()
 
 
@@ -45,14 +48,13 @@ def activate_source(mode):
         "min_coverage": 60,
         "style_priority": 0.5,
         "shortlist_length": 3,
-        "cohort_only": False,
         "midfield_min_minutes": 600.0,
         "midfield_min_coverage": 60,
         "midfield_replace_slot": 2,
     }
     for key in list(st.session_state):
         if key in {"reference", "explain_candidate"} or key.startswith(
-            ("style_weight_", "role_weight_", "midfield_")
+            ("style_weight_", "role_weight_", "midfield_", "explorer_")
         ):
             st.session_state.pop(key)
     # Deleting a widget key resets Python state but can leave the browser's
@@ -78,85 +80,6 @@ def table(rows):
         )
     }
     st.dataframe(rows, hide_index=True, width="stretch", column_config=formats)
-
-
-def player_explorer(data):
-    st.subheader("Player explorer")
-    search, team_filter, review_filter = st.columns([2, 2, 1])
-    query = (
-        search.text_input("Search player name", key="player_search").strip().casefold()
-    )
-    teams = sorted({row.team_id for row in data.metrics.players})
-    if st.session_state.get("team_filter") not in (None, *teams):
-        st.session_state["team_filter"] = None
-    team = team_filter.selectbox(
-        "Historical team",
-        [None, *teams],
-        key="team_filter",
-        format_func=lambda key: (
-            "All teams" if key is None else data.team_names.get(key, str(key))
-        ),
-    )
-    reviewed = review_filter.checkbox(
-        "Fictional cohort only" if data.fictional else "Included reviews only",
-        key="cohort_only",
-    )
-    included = {
-        key
-        for key, review in ui_data.present_reviews(data).items()
-        if review.status == "included"
-    }
-    rows = [
-        row
-        for row in ui_data.explorer_rows(data)
-        if query in row["Player"].casefold()
-        and (team is None or row["Team ID"] == team)
-        and (not reviewed or (row["Player ID"], row["Team ID"]) in included)
-    ]
-    st.caption(
-        f"{len(rows)} player/team rows · Initially sorted by rated minutes; click a column to sort. "
-        "Transfers remain separate historical team rows. Unverified position ≠ eligible central midfielder."
-    )
-    if rows:
-        table(rows)
-    else:
-        st.info("No players match these filters.")
-    st.caption(
-        "All displayed metrics use rated matches with positive estimated minutes. "
-        "Coverage = rated recorded appearances / all recorded appearances; it is not event completeness. "
-        "Blank values are unavailable, not zero. Minutes use approximate observed period ends."
-    )
-    with st.expander("Data coverage and limitations"):
-        metrics = data.metrics
-        usable = sum(row.duration_minutes is not None for row in metrics.matches)
-        st.write(
-            {
-                "Matches with usable period durations": usable,
-                "Matches without usable period durations": len(metrics.matches)
-                - usable,
-                "Unknown-player events (player ID 0)": len(
-                    metrics.unknown_player_event_ids
-                ),
-                "Events with missing player metadata": len(
-                    metrics.missing_player_metadata_event_ids
-                ),
-                "Events without a recorded appearance": len(
-                    metrics.non_appearance_event_ids
-                ),
-                "Pass events with ambiguous outcomes": len(
-                    metrics.ambiguous_pass_event_ids
-                ),
-                "Defensive duels with ambiguous outcomes": len(
-                    metrics.ambiguous_defensive_duel_event_ids
-                ),
-            }
-        )
-        st.write(
-            "Missing or ambiguous minutes exclude matches from rates and can bias comparisons. "
-            "Raw accurate-pass/duel counts include only explicitly classified successes; "
-            "ambiguous outcomes make affected rates unavailable. Review the local data provenance "
-            "and docs/metrics.md before interpreting results."
-        )
 
 
 def metric_weights(role):
@@ -707,52 +630,52 @@ def main():
         return
     if data.fictional:
         st.warning(
-            "FICTIONAL DEMO — All players, clubs, matches, events and results are invented. NOT real Bundesliga statistics. Four midfielders are assigned for this fixture only."
+            "FICTIONAL DEMO — Invented players, clubs and results. NOT real Bundesliga statistics."
         )
         st.sidebar.markdown("**Active: FICTIONAL demo**")
     else:
         st.caption("Local Wyscout Bundesliga 2017/18 data")
-        if data.custom_reviews is None:
-            st.info(
-                "Limited demonstration: only four reviewed midfielders. Their CM/CDM position proxies are not exhaustive tactical-position ground truth. Other players remain unverified."
-            )
-        else:
-            st.info(
-                "External manual reviews are active. Evidence is recorded, not independently verified. "
-                "Omitted players remain unverified; no positions are inferred."
-            )
         st.sidebar.markdown("**Active: local Wyscout files**")
-    reviews = ui_data.configured_reviews(data)
-    unverified = sum(
-        (row.player_id, row.team_id) not in reviews for row in data.metrics.players
+    st.sidebar.caption(
+        f"{len(data.metrics.matches)} matches · {len(data.metrics.players)} player/team rows · "
+        f"{data.metrics.event_count:,} events"
     )
-    st.caption(
-        f"Cohort decisions: {sum(r.status == 'included' for r in reviews.values())} included · "
-        f"{sum(r.status == 'excluded' for r in reviews.values())} excluded · "
-        f"{unverified} unverified metric rows · {len({player for player, _ in reviews})} reviewed player IDs. "
-        "Decisions are scoped to player / historical team."
-    )
-    matches, players, events = st.columns(3)
-    matches.metric("Matches", len(data.metrics.matches))
-    players.metric("Player / historical team rows", len(data.metrics.players))
-    events.metric("Events", f"{data.metrics.event_count:,}")
     explorer, replacements, midfield = st.tabs(
         ["Player explorer", "Replacement finder", "Midfield simulator"]
     )
     with explorer:
-        player_explorer(data)
+        # Reviews can change recruitment pools without resetting general discovery.
+        player_explorer(data, source_key[:2])
     with replacements:
         replacement_finder(data)
+        with st.expander("Cohort reviews and evidence"):
+            if not data.fictional:
+                st.info(
+                    "Limited demonstration: only four reviewed midfielders by default. "
+                    "Their position proxies are not exhaustive ground truth."
+                    if data.custom_reviews is None
+                    else "External manual reviews are active. Evidence is recorded, not independently verified. "
+                    "Omitted players remain unverified; no positions are inferred."
+                )
+            reviews = ui_data.configured_reviews(data)
+            unverified = sum(
+                (row.player_id, row.team_id) not in reviews
+                for row in data.metrics.players
+            )
+            st.caption(
+                f"Cohort decisions: {sum(r.status == 'included' for r in reviews.values())} included · "
+                f"{sum(r.status == 'excluded' for r in reviews.values())} excluded · "
+                f"{unverified} unverified metric rows. Decisions are scoped to player / historical team."
+            )
+            rows = ui_data.review_rows(data)
+            if rows:
+                table(rows)
+            else:
+                st.info(
+                    "The supplied review set is empty. No player is included for scoring."
+                )
     with midfield:
         midfield_simulator(data, source_key)
-    with st.expander("Cohort reviews and evidence"):
-        rows = ui_data.review_rows(data)
-        if rows:
-            table(rows)
-        else:
-            st.info(
-                "The supplied review set is empty. No player is included for scoring."
-            )
 
 
 if __name__ == "__main__":
