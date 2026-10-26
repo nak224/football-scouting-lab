@@ -1,10 +1,12 @@
-# Local scouting interface — through Milestone 5c
+# Local scouting interface
 
 The optional Streamlit app is a local portfolio demonstration for historical
 Bundesliga recruitment analysis. It uses the existing metrics, role, similarity,
 recruitment and midfield-comparison APIs. No scoring algorithm or player-position
 review of real players is added by the UI. The separate fictional fixture assigns
 four invented midfielders solely to exercise the same workflows.
+The redesigned Player explorer displays original broad source roles independently
+of those recruitment decisions; its percentile profiles use existing rated metrics.
 
 ## Install and start
 
@@ -23,7 +25,8 @@ append `--server.headless true`. No database, API server or deployment is requir
 ## Try the FICTIONAL demo
 
 Select **Load FICTIONAL demo** in the sidebar. No downloaded data, additional
-configuration or new dependency is needed. One prominent **FICTIONAL DEMO** banner
+configuration is needed after installing the `ui` extra (Streamlit and Plotly).
+One prominent **FICTIONAL DEMO** banner
 states that players, clubs, matches, events and results are invented; names and
 clubs also carry the FICTIONAL prefix. These are **not real Bundesliga statistics**.
 
@@ -40,6 +43,8 @@ not a realistic football simulation.
 All four invented players have distinct IDs separate from the real reviewed
 cohort and explicit fictional eligibility assignments, not FIFA evidence or
 inferred positions. The real four-player review list is unchanged. Generated
+players now carry an explicit fictional `role.name: Midfielder`; real-data roles
+are never inferred from this assignment or from review files. Generated
 match records carry a versioned fictional marker: manually loading those files
 still shows the fictional banner. Mixing marked/unmarked matches, unsupported
 versions, explicit nulls or inconsistent marker values is rejected before events
@@ -135,8 +140,9 @@ The source summary shows included/excluded decisions, reviewed player IDs and
 unverified metric rows. **Cohort reviews and evidence** shows every supplied
 decision, note, evidence, player-metadata status and metric-sample availability,
 including exclusions.
-Use **Included reviews only** in Player explorer; minimum minutes/coverage and
-measurement completeness still control actual scoring eligibility. Replacement
+Recruitment reviews do not restrict Player explorer or its comparison population.
+Minimum minutes/coverage and measurement completeness still control recruitment
+scoring eligibility. Replacement
 and simulator exclusions explain why reviewed players cannot be scored.
 
 Review files are reread on each interaction, so edits at the same path (including
@@ -150,10 +156,9 @@ form its fixed comparison cohort; it is never narrowed to the selected lineup.
 ## Example workflow
 
 1. In **Player explorer**, search `Casey` in fictional mode or `Thiago` in local
-   Wyscout mode, filter a club, or select the cohort checkbox. Tables initially
-   sort by rated minutes; click column
-   headers to sort. Each player/team row retains original IDs, rated-match and
-   appearance counts, minutes, coverage and existing passing/defensive metrics.
+   Wyscout mode, filter a historical club and broad source position, then select
+   a row for the profile. Click table headers to sort. **Player list** returns
+   to your filters; transfer rows retain separate team identities.
 2. In **Replacement finder**, choose an eligible reference such as fictional
    Casey or local-data Weigl `(224677, 2447)` and Deep-Lying Playmaker or Ball-Winning Midfielder.
 3. Adjust minimum rated minutes (default 600), appearance coverage (60%), shortlist
@@ -170,7 +175,79 @@ form its fixed comparison cohort; it is never narrowed to the selected lineup.
 
 Scores and explanations come directly from `rank_replacements`; see
 [recruitment](recruitment.md), [roles](roles.md) and [similarity](similarity.md).
-No frontend scoring algorithm or normalization is introduced.
+Recruitment scoring and normalization remain in those existing APIs.
+
+## Player discovery and profiles
+
+The four filters are **Player name**, **League**, **Historical team** and
+**Position**. The league selector is fixed to **Bundesliga 2017/18**, the only
+supported source. Filters combine; empty results have a simple message. The list
+initially sorts by rated minutes and shows seven compact columns. Select a row
+using Streamlit's native single-row selection to open a two-column profile.
+Audit IDs remain internal; no recruitment-review label or massive statistics
+table appears in discovery. Recruitment evidence stays in Replacement finder.
+
+Positions come only from the original `players.json` **`role.name`** values:
+Goalkeeper, Defender, Midfielder or Forward. Absent, malformed, unrecognized or
+missing-player metadata stays **Unknown**. These are broad metadata labels, not
+historical match-specific tactical positions or verified central-midfielder
+eligibility. No CM/CDM/AM label is inferred from events, reviews or current clubs.
+Historical teams still come from match sheets, never `currentTeamId`.
+
+Profiles show the selected historical team and season, rated minutes/appearances,
+the existing per-90 passing/defending statistics, pass completion, and comparison
+percentiles. **Player list** restores filters without reopening a stale selection.
+Data-source/file changes clear stale profiles and filters; review-file changes
+affect recruitment while leaving discovery/profile measurements unchanged.
+Navigation, filters and comparison controls reuse the cached season snapshot;
+they do not reprocess season events. The cached payload also retains broad roles.
+
+### Comparison and radar conventions
+
+- **Same position** uses the same recognized broad source role. An Unknown
+  position does not establish a comparable position group; use **All players**.
+- **All players** includes broad-role and Unknown rows from this same source and
+  season. Both modes require **at least 600 valid positive rated minutes**, rated
+  counts and a rated recorded appearance for population membership. The threshold
+  is a documented default, explained by a short tooltip rather than another control.
+- Historical player/team rows remain separate; a transferred player can contribute
+  more than one row. Include the selected row when it qualifies. A selected player
+  below 600 minutes can still show available raw values and comparisons against
+  qualified peers, with a sample note, but does not enter that population.
+- Each feature independently excludes missing/nonfinite measurements. Its **Peers**
+  count is shown; **at least two** are required for a percentile. Tiny groups are
+  unstable. Nothing fills unknown measurements or percentiles with zero.
+
+For a raw value `x`, the empirical midrank percentile is
+`100 × (count(peer < x) + 0.5 × count(peer == x)) / available peers`.
+Tied values share a percentile; a constant cohort matching `x` yields **50**.
+For peers `[10, 20, 30, 40]`, `20` is at **37.5**. Values outside the peer range
+can reach 0 or 100. This normalization is independent of tactical role scoring,
+style similarity and recruitment rankings; none of those algorithms changes.
+
+The Plotly radar uses a fixed **0–100** axis for up to four verified features:
+pass attempts/90, pass completion %, interceptions/90 and successful ground
+defending duels/90. Raw values appear beside it. At least **three** usable
+percentiles are needed; otherwise a concise unavailable state replaces the chart.
+Zero is a real measurement/percentile when supported by data, not a placeholder.
+The radar describes a **relative statistical profile, not overall player quality**.
+Minutes, sample coverage, opponent/possession context and missing outcomes retain
+the [existing limitations](metrics.md). The four-player demo is deliberately small.
+
+### Redesign verification — 2026-10-26
+
+Synthetic tests cover combined filters, original role metadata/Unknown positions,
+transfer identity, native row-selection events, filtered back navigation,
+comparison modes, per-feature missingness, tiny/constant/tied groups, radar data,
+source isolation and cached calculation reuse. Existing recruitment and simulator
+tests remain intact. Desktop Chromium renders were visually inspected; see genuine
+[discovery](screenshots/explorer-list.png) and [profile](screenshots/explorer-profile.png)
+captures. All pictured players, clubs and results are fictional. Real local
+Wyscout data was unavailable for a new smoke; no source data was downloaded.
+Ruff lint/format and the full suite passed on Python **3.12.14 and 3.13.5**:
+**509 passed per version, no failures or skips**. Chromium **154.0.8037.57** at
+1440 px desktop width verified native sorted-row selection, comparison switching,
+filtered back navigation and both other tabs without JavaScript page errors.
 
 ## Midfield simulator workflow (4b2)
 
