@@ -35,7 +35,8 @@ def write_fictional_data(directory: str | Path) -> Path:
     root = Path(directory)
     payloads = {
         "players.json": [
-            {"wyId": player, "shortName": name} for player, name, *_ in PROFILES
+            {"wyId": player, "shortName": name, "role": {"name": "Midfielder"}}
+            for player, name, *_ in PROFILES
         ],
         "teams.json": [
             {"wyId": team, "name": name}

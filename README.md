@@ -17,13 +17,14 @@ python -m streamlit run streamlit_app.py
 ```
 
 Select **Load FICTIONAL demo** in the sidebar. All three sections work immediately:
-search `Casey` in **Player explorer**, change a role/weights in **Replacement
+search `Casey` in **Player explorer** and select the row to open a profile,
+change a role/weights in **Replacement
 finder**, then swap a player in **Midfield simulator** and inspect feature changes.
 Every demo player, club, event and result is **invented — NOT real Bundesliga
 statistics**. Scores are calculated by the existing analytics, not canned UI values.
 
-Genuine fictional-demo screenshots: [Replacement finder](docs/screenshots/fictional-replacements.png)
-and [Midfield simulator](docs/screenshots/fictional-midfield.png).
+Genuine fictional-demo screenshots: [Player discovery](docs/screenshots/explorer-list.png)
+and [Player profile](docs/screenshots/explorer-profile.png).
 
 This MVP demonstrates explainable metrics, configurable recruitment priorities,
 fixed-cohort comparisons, data validation and a usable local Python interface.
@@ -36,16 +37,15 @@ On Windows, use `py -3.12 -m venv .venv` and `.venv\Scripts\Activate.ps1`.
 
 ## Current status
 
-**Milestone 5c: v0.1 release review.** The complete synthetic workflow passes on
-Python **3.12.14 and 3.13.5**: **476 tests per version**, with no failures or skips.
-The clean quick start and an actual Chromium visual/workflow review succeeded.
-Scoped fixes preserve legitimate match-sheet pairs whose player metadata is
-missing, synchronize browser controls after source resets, and keep shortlist
-minutes/coverage beside scores. No scoring algorithm, dependency or reviewed
-real-player cohort was added.
+**Player Explorer redesign.** A compact list supports player-name, league,
+historical-team and original broad-position filters. Native row selection opens
+a profile with rated statistics, per-feature percentiles and a radar chart.
+Compare with the same position or all players; the comparison population uses
+at least 600 rated minutes. Recruitment reviews remain separate from discovery.
+Role fit, style similarity, replacement ranking and the simulator are unchanged.
 
 Real Wyscout loading remains available under **Use local Wyscout files**. No
-real local dataset was accessible for a new smoke in 5c. Earlier real
+real local dataset was accessible for a new redesign smoke. Earlier real
 results below are historical audits, not new validation. See [actual checks and
 limitations](docs/release-readiness.md). The fictional portfolio demonstration is
 reviewable; real-data end-to-end validation and broader football validity remain
@@ -57,7 +57,7 @@ positive minutes for **7,395/8,501 appearances**, with uneven team coverage.
 The conservative estimator is unchanged. Broader cohort validation remains
 planned. Tests use synthetic data; real examples and source limits are documented.
 
-The backend has no runtime dependencies; Streamlit is an optional `ui` extra.
+The backend has no runtime dependencies; Streamlit and Plotly are in the optional `ui` extra.
 There are no third-party datasets in Git. Earlier Figshare item
 metadata checks confirmed CC BY 4.0, and the small mirror metadata files matched
 published checksums. The original event binary redirected to a blocked S3 host;
@@ -133,7 +133,14 @@ teams.json and events_Germany.json** in the sidebar, then select **Load season**
 The app does not download or bundle data. It binds to the local machine and
 caches derived metrics so controls do not reprocess the raw events.
 
-Search a name or historical team in **Player explorer**. In **Replacement finder**,
+Filter **Player explorer** by name, league, historical team and broad source
+position. The only supported league/season is Bundesliga 2017/18. Select a row
+for the two-column profile; **Player list** returns to your filters. Raw values
+sit beside a percentile radar; missing values remain unavailable. Broad positions
+come from `players.json` `role.name`, never from recruitment reviews. Unknown
+positions stay unknown. See [comparison method and limits](docs/ui.md#player-discovery-and-profiles).
+
+In **Replacement finder**,
 choose a reviewed reference and role, adjust priorities/weights/thresholds, then
 inspect the separate scores and feature explanations. By default, four players have
 reviewed demo positions; unverified players remain visible in exploration and
@@ -379,6 +386,9 @@ the ranges sum to the 25–40-hour target.
 | 4 | Lightweight local player exploration and structured scouting search UI | 4–7 h | 4a explorer/replacement finder plus 4b2 midfield simulator implemented; unchanged four-player demo |
 | 5 | End-to-end checks, explanations, and portfolio documentation | 2–4 h | 5a–5c demo, external reviews and final validation implemented; real-data smoke remains unavailable locally |
 
-See [architecture](docs/architecture.md) for the planned design and score
-boundaries and the [v0.1 readiness checklist](docs/release-readiness.md) for completed,
-partially verified and blocked checks. Milestone 5c stops here; further work requires review.
+See [architecture](docs/architecture.md) for the design and score boundaries and
+the [original v0.1 readiness checklist](docs/release-readiness.md) for dated
+completed, partially verified and blocked checks.
+
+The subsequent Player Explorer UX redesign adds discovery/profiles and a separate
+statistical comparison view, with no new football metrics or recruitment algorithms.

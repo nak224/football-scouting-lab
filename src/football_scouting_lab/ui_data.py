@@ -1,7 +1,7 @@
 """Small presentation helpers; no Streamlit dependency or scoring algorithms."""
 
 import re
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
@@ -23,6 +23,7 @@ DATA_FILES = (
     "teams.json",
     "events_Germany.json",
 )
+POSITION_GROUPS = ("Goalkeeper", "Defender", "Midfielder", "Forward")
 METRIC_LABELS = {
     "pass_attempts_per90": "Pass attempts /90",
     "accurate_passes_per90": "Accurate passes /90",
@@ -47,6 +48,7 @@ class ScoutingData:
     historical_pairs: frozenset[tuple[int, int]] = frozenset()
     custom_reviews: dict[tuple[int, int], PositionReview] | None = None
     missing_player_ids: frozenset[int] = frozenset()
+    player_positions: dict[int, str] = field(default_factory=dict)
 
     def label(self, key: tuple[int, int]) -> str:
         player, team = key
@@ -99,7 +101,7 @@ def load_scouting_data(directory: str) -> ScoutingData:
     player_ids = {player_id for player_id, _ in historical_pairs} | {
         row.player_id for row in metrics.players
     }
-    names = {}
+    names, positions = {}, {}
     for player_id in player_ids:
         record = metadata.players.get(player_id, {})
         name = (
@@ -109,6 +111,9 @@ def load_scouting_data(directory: str) -> ScoutingData:
             ).strip()
         )
         names[player_id] = display_text(str(name or f"Player {player_id}"))
+        role = record.get("role")
+        position = role.get("name") if isinstance(role, dict) else None
+        positions[player_id] = position if position in POSITION_GROUPS else "Unknown"
     teams = {
         team_id: display_text(str(record.get("name") or f"Team {team_id}"))
         for team_id, record in metadata.teams.items()
@@ -120,6 +125,7 @@ def load_scouting_data(directory: str) -> ScoutingData:
         fictional=fictional,
         historical_pairs=historical_pairs,
         missing_player_ids=metadata.missing_player_ids,
+        player_positions=positions,
     )
 
 
